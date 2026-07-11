@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Sprint 2B.1</title>
+  <title>Classroom · Sprint 3 Search</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v2b1.css" />
+  <link rel="stylesheet" href="styles-v3.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -20,6 +20,7 @@
         <button class="nav-item active" data-view="dashboard">Overview</button>
         <button class="nav-item" data-view="calendar">Weekly planner</button>
         <button class="nav-item" data-view="sessions">One-on-one sessions</button>
+        <button class="nav-item nav-new" data-view="search"><span>Search</span><small>NEW</small></button>
         <button class="nav-item" data-view="library">Library</button>
         <button class="nav-item nav-new" data-view="import"><span>Import center</span><small>NEW</small></button>
         <button class="nav-item nav-new" data-view="storage"><span>Storage &amp; backup</span><small>LOCAL</small></button>
@@ -30,13 +31,14 @@
         <strong>Personal data stays local.</strong>
         <p>Import schedules, learners, and teaching records into this browser. They are not written to GitHub.</p>
       </div>
-      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 2B.1 · Local backup</span></p>
+      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 3 · Search</span></p>
     </aside>
 
     <main class="main-content">
       <header class="topbar">
         <div><p class="eyebrow" id="viewEyebrow">Workspace</p><h2 id="viewTitle">Teaching overview</h2></div>
         <div class="topbar-actions">
+          <button class="button button-secondary global-search-button" id="globalSearchButton" data-go-to="search" type="button">⌕ Search <kbd>⌘K</kbd></button>
           <button class="folder-status-pill" id="folderStatusPill" data-go-to="storage" type="button"><span class="folder-status-dot"></span><span id="folderStatusPillText">Browser only</span></button>
           <button class="button button-secondary" id="exportButton">Export backup</button>
           <button class="button button-primary" id="addLessonButton">+ Add lesson</button>
@@ -84,6 +86,90 @@
       <section class="view" id="sessionsView">
         <div class="section-intro"><div><span class="eyebrow">Individualized instruction</span><h3>One-on-one session planning</h3><p>Keep goals, lesson focus, notes, and linked materials together for each learner.</p></div><button class="button button-primary" id="addSessionButton">+ New one-on-one session</button></div>
         <div id="sessionList" class="session-grid"></div>
+      </section>
+
+
+      <section class="view" id="searchView">
+        <div class="section-intro search-intro">
+          <div>
+            <span class="eyebrow">Across your local workspace</span>
+            <h3>Search</h3>
+            <p>Find lessons, resources, calendar events, learners, teaching memory, templates, and import records without sending a query outside this browser.</p>
+          </div>
+          <div class="search-header-actions">
+            <button class="button button-secondary" id="clearSearchButton">Clear search</button>
+            <button class="button button-primary" id="saveSearchButton">Save current search</button>
+          </div>
+        </div>
+
+        <div class="privacy-banner search-privacy-banner">
+          <strong>Private local search</strong>
+          <span>The index is built in this browser from your current Classroom workspace. Search terms and results are not published to GitHub.</span>
+        </div>
+
+        <section class="panel search-command-panel">
+          <div class="global-search-box">
+            <span class="global-search-icon" aria-hidden="true">⌕</span>
+            <input id="globalSearchInput" type="search" autocomplete="off" placeholder="Search a lesson, student, topic, tag, note, file name…" aria-label="Search the Classroom workspace" />
+            <button class="search-input-clear hidden" id="clearSearchInputButton" type="button" aria-label="Clear search text">×</button>
+          </div>
+          <div class="search-filter-grid">
+            <label class="form-field"><span>Search in</span><select id="searchScope">
+              <option value="all">Everything</option>
+              <option value="lesson">Lessons</option>
+              <option value="material">Library resources</option>
+              <option value="calendar">School calendar</option>
+              <option value="student">Learners</option>
+              <option value="memory">Teaching memory</option>
+              <option value="template">Lesson templates</option>
+              <option value="import">Import history</option>
+            </select></label>
+            <label class="form-field"><span>From date</span><input id="searchDateFrom" type="date" /></label>
+            <label class="form-field"><span>To date</span><input id="searchDateTo" type="date" /></label>
+            <label class="form-field"><span>Learner / audience</span><select id="searchLearner"><option value="all">All learners</option></select></label>
+            <label class="form-field"><span>Tags contain</span><input id="searchTags" placeholder="reading, Unit 2" /></label>
+            <label class="form-field"><span>Sort results</span><select id="searchSort">
+              <option value="relevance">Best match</option>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="title">Title A–Z</option>
+              <option value="type">Group by type</option>
+            </select></label>
+          </div>
+          <div class="search-command-footer">
+            <div id="activeSearchFilters" class="active-search-filters"></div>
+            <span class="search-shortcut-note">Press <kbd>⌘K</kbd> or <kbd>Ctrl K</kbd> from anywhere.</span>
+          </div>
+        </section>
+
+        <div class="search-stat-grid">
+          <article class="search-stat"><span>All matches</span><strong id="searchAllCount">0</strong></article>
+          <article class="search-stat"><span>Lessons</span><strong id="searchLessonCount">0</strong></article>
+          <article class="search-stat"><span>Resources</span><strong id="searchResourceCount">0</strong></article>
+          <article class="search-stat"><span>Learners &amp; memory</span><strong id="searchPeopleCount">0</strong></article>
+        </div>
+
+        <div class="search-layout">
+          <aside class="panel saved-search-panel">
+            <div class="saved-search-heading"><div><span class="eyebrow">Reusable filters</span><h3>Saved searches</h3></div></div>
+            <div id="savedSearchList" class="saved-search-list"></div>
+            <div class="quick-searches">
+              <span class="eyebrow">Quick searches</span>
+              <button class="quick-search-button" data-search-preset="upcoming"><strong>Upcoming 30 days</strong><span>Lessons and sessions</span></button>
+              <button class="quick-search-button" data-search-preset="one-on-one"><strong>One-on-one</strong><span>Individual sessions</span></button>
+              <button class="quick-search-button" data-search-preset="resources"><strong>All resources</strong><span>Browse the Library index</span></button>
+              <button class="quick-search-button" data-search-preset="memory"><strong>Teaching memory</strong><span>Observations and next steps</span></button>
+            </div>
+          </aside>
+
+          <section class="search-results-column">
+            <div class="search-results-heading">
+              <div><span class="eyebrow">Results</span><h3 id="searchResultsTitle">Your workspace</h3><p id="searchResultsSummary">Enter a word or use filters to narrow your local data.</p></div>
+              <span id="searchResultLimitNote" class="search-limit-note"></span>
+            </div>
+            <div id="searchResults" class="search-results" aria-live="polite"></div>
+          </section>
+        </div>
       </section>
 
       <section class="view" id="libraryView">
@@ -309,6 +395,21 @@
     </main>
   </div>
 
+
+  <dialog id="saveSearchDialog" class="modal modal-small">
+    <form method="dialog" id="saveSearchForm">
+      <div class="modal-header"><div><span class="eyebrow">Reusable search</span><h3>Save current search</h3><p class="modal-subtitle">The saved search is included in your local workspace backup.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <label class="form-field full-width"><span>Search name</span><input id="savedSearchName" required maxlength="80" placeholder="Upcoming CEO sessions, Grade 3 reading…" /></label>
+      <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save search</button></div></div>
+    </form>
+  </dialog>
+
+  <dialog id="searchDetailDialog" class="modal modal-wide">
+    <div class="modal-header"><div><span class="eyebrow" id="searchDetailEyebrow">Search result</span><h3 id="searchDetailTitle">Details</h3><p id="searchDetailSubtitle" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+    <div id="searchDetailBody" class="search-detail-body"></div>
+    <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Close</button></div></div>
+  </dialog>
+
   <dialog id="lessonDialog" class="modal">
     <form method="dialog" id="lessonForm">
       <div class="modal-header"><div><span class="eyebrow">Lesson card</span><h3 id="lessonDialogTitle">Add lesson</h3></div><button class="close-button" type="button" data-close-dialog>×</button></div>
@@ -419,8 +520,9 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button></div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app-v2b1-core.js"></script>
-  <script src="library-v2b1.js"></script>
-  <script src="storage-v2b1.js"></script>
+  <script src="app-v3-core.js"></script>
+  <script src="library-v3.js"></script>
+  <script src="storage-v3.js"></script>
+  <script src="search-v3.js"></script>
 </body>
 </html>

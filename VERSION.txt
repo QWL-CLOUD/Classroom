@@ -1,2 +1,2 @@
-Classroom Sprint 2B.1 — Local Folder & Backup
-Expected URL query: ?v=2b1
+Classroom Sprint 3 — Search
+Expected URL: https://qwl-cloud.github.io/Classroom/?v=3-search

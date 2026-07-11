@@ -1,4 +1,4 @@
-# Classroom — Sprint 2B.1
+# Classroom — Sprint 3 Search
 
 Privacy-first teaching workspace for GitHub Pages.
 
@@ -21,3 +21,13 @@ The public repository contains only the application. Personalized planner, Libra
 ## Publish
 
 Upload all files from this folder to the root of the GitHub repository, replacing files with the same names. GitHub Pages should publish from `main` and `/(root)`.
+
+
+## Sprint 3 — Search
+
+- Unified local search across lessons, Library resources, school calendar, learners, Teaching Memory, lesson templates, and import history.
+- Filters for record type, date range, learner/audience, tags, and sorting.
+- Saved searches are stored in the Classroom workspace and included in folder backups.
+- Direct actions open lessons in the planner, edit resources, open resource links, or show complete record details.
+- Keyboard shortcut: Command-K on macOS or Ctrl-K on Windows/ChromeOS.
+- The search index is built in the browser and is never sent to GitHub.
