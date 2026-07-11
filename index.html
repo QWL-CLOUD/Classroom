@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Core UX Repair v8.1</title>
+  <title>Classroom · Today Schedule Fix v8.1</title>
   <link rel="icon" href="assets/favicon-c.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v8.1.css" />
+  <link rel="stylesheet" href="styles-v8.2.css" />
 </head>
 <body>
   <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -115,7 +115,10 @@
           </div>
 
           <article class="panel today-schedule-panel">
-            <div class="panel-heading schedule-heading"><div><span class="eyebrow">Live day</span><h3>Today schedule</h3></div><div class="legend-inline"><span class="past-dot"></span>Past <span class="now-dot-legend"></span>Now <span class="future-dot"></span>Upcoming</div></div>
+            <div class="panel-heading schedule-heading">
+              <div><span class="eyebrow">Live day</span><h3>Today schedule</h3><p id="todayScheduleDateLabel" class="schedule-date-label"></p></div>
+              <div class="schedule-heading-actions"><button id="todayBackButton" class="button subtle compact hidden" type="button">Back to today</button><div class="legend-inline"><span class="past-dot"></span>Past <span class="now-dot-legend"></span>Now <span class="future-dot"></span>Upcoming</div></div>
+            </div>
             <div id="todayTimeline" class="today-timeline"></div>
           </article>
         </div>
@@ -218,7 +221,7 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="assets/vendor/jszip.min.js"></script>
-  <script src="xlsx-import-v8.1.js"></script>
-  <script src="app-v8.1.js"></script>
+  <script src="xlsx-import-v8.2.js"></script>
+  <script src="app-v8.2.js"></script>
 </body>
 </html>
