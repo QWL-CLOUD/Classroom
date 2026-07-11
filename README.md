@@ -1,20 +1,21 @@
-# Classroom · Sprint 2A.3 corrected build
+# Classroom — Sprint 2B Library
 
-Privacy-first static teaching workspace for GitHub Pages.
+A privacy-first browser teaching workspace. This build keeps all personalized data in browser Local Storage and adds a full resource-library workflow.
 
-## What is included
-- Weekly planner (Monday–Sunday)
-- One-on-one session planning
-- Bump with confirmation and persistent **Undo last bump**
-- Resource Library with grade, skill, topic, unit, and tags
-- Import Center for Excel, CSV, JSON, and ICS
-- Automatic category suggestion and field mapping
-- Add, Merge, and Replace import modes
-- Preview, validation, import history, and Undo last import
-- Local browser storage and JSON backup
+## Sprint 2B features
 
-## Privacy model
-The public repository contains only the app. Personalized content is read and stored locally in the browser. Do not put private student data directly into repository files.
+- Add, edit, delete, duplicate, favorite, and open resources
+- Collections/folders with rename and delete
+- Search and filters for type, grade, skill, favorites, and collections
+- Sort by recently added, recently used, most used, or title
+- Bulk selection, classification, review, favorite, and delete
+- Imported-resource review workflow
+- Attach a resource to a lesson and track usage
+- Possible duplicate detection and safe merging
+- Library-only JSON export
+- One-step Undo for the latest Library action
+- Existing Sprint 2A Import Center, Bump undo, and Monday–Sunday planner retained
 
-## Deploy
-Upload every file in this folder to the repository root and commit. `index.html` intentionally references versioned asset filenames to prevent old browser caches from mixing versions.
+## Privacy
+
+The public GitHub repository contains only the application code. Resources, lesson links, collections, imported schedules, and learner information are stored locally in the current browser unless the user explicitly exports a backup.

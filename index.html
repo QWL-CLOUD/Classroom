@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Sprint 2A.4</title>
+  <title>Classroom · Sprint 2B</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v2a4.css" />
+  <link rel="stylesheet" href="styles-v2b.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -29,7 +29,7 @@
         <strong>Personal data stays local.</strong>
         <p>Import schedules, learners, and teaching records into this browser. They are not written to GitHub.</p>
       </div>
-      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 2A.3</span></p>
+      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 2B · Library</span></p>
     </aside>
 
     <main class="main-content">
@@ -85,13 +85,77 @@
       </section>
 
       <section class="view" id="libraryView">
-        <div class="section-intro"><div><span class="eyebrow">Digital binder</span><h3>Resource library</h3><p>Organize links by grade, skill, topic, unit, and custom tags.</p></div><button class="button button-primary" id="addMaterialButton">+ Add resource</button></div>
-        <div class="filter-row library-filters">
-          <input id="materialSearch" class="search-input" type="search" placeholder="Search title, topic, unit, or tags…" />
-          <select id="materialTypeFilter" class="select-input"><option value="all">All types</option><option>Slides</option><option>Worksheet</option><option>Drive</option><option>Website</option><option>Video</option><option>Other</option></select>
-          <select id="materialSkillFilter" class="select-input"><option value="all">All skills</option></select>
+        <div class="section-intro library-intro">
+          <div>
+            <span class="eyebrow">Digital binder</span>
+            <h3>Resource library</h3>
+            <p>Organize, reuse, and connect teaching resources to lessons. All personalized library data stays in this browser.</p>
+          </div>
+          <div class="library-header-actions">
+            <button class="button button-undo" id="undoLibraryButton" disabled>↶ Undo library action</button>
+            <button class="button button-secondary" id="exportLibraryButton">Export library</button>
+            <button class="button button-secondary" id="findDuplicatesButton">Find duplicates</button>
+            <button class="button button-secondary" id="addCollectionButton">+ Collection</button>
+            <button class="button button-primary" id="addMaterialButton">+ Add resource</button>
+          </div>
         </div>
-        <div id="materialLibrary" class="material-grid"></div>
+
+        <div class="library-stat-grid">
+          <article class="library-stat"><span>Total resources</span><strong id="libraryTotalCount">0</strong></article>
+          <article class="library-stat"><span>Favorites</span><strong id="libraryFavoriteCount">0</strong></article>
+          <article class="library-stat"><span>Used this month</span><strong id="libraryUsedMonthCount">0</strong></article>
+          <article class="library-stat warning-stat"><span>Needs review</span><strong id="libraryReviewCount">0</strong></article>
+        </div>
+
+        <div class="library-toolbar panel">
+          <div class="library-search-row">
+            <input id="materialSearch" class="search-input library-search" type="search" placeholder="Search title, topic, learner, notes, or tags…" />
+            <select id="materialTypeFilter" class="select-input">
+              <option value="all">All types</option>
+              <option>Slides</option><option>Worksheet</option><option>Drive</option><option>Website</option><option>Video</option><option>Book</option><option>Image</option><option>Audio</option><option>Assessment</option><option>Other</option>
+            </select>
+            <select id="materialGradeFilter" class="select-input"><option value="all">All grades</option></select>
+            <select id="materialSkillFilter" class="select-input"><option value="all">All skills</option></select>
+            <select id="materialSort" class="select-input">
+              <option value="recent">Recently added</option>
+              <option value="used">Recently used</option>
+              <option value="popular">Most used</option>
+              <option value="title">Title A–Z</option>
+            </select>
+          </div>
+          <div class="library-toolbar-lower">
+            <label class="compact-check"><input type="checkbox" id="favoritesOnly" /> Favorites only</label>
+            <button class="text-button" id="selectVisibleButton">Select visible</button>
+            <button class="text-button" id="clearLibraryFilters">Clear filters</button>
+            <span id="libraryResultCount" class="library-result-count">0 resources</span>
+          </div>
+        </div>
+
+        <div class="bulk-toolbar hidden" id="bulkToolbar">
+          <strong><span id="bulkSelectedCount">0</span> selected</strong>
+          <div class="bulk-actions">
+            <button class="button button-small button-secondary" id="bulkFavoriteButton">★ Favorite</button>
+            <button class="button button-small button-secondary" id="bulkEditButton">Classify</button>
+            <button class="button button-small button-secondary" id="bulkReviewedButton">Mark reviewed</button>
+            <button class="button button-small button-danger" id="bulkDeleteButton">Delete</button>
+            <button class="text-button" id="clearSelectionButton">Clear selection</button>
+          </div>
+        </div>
+
+        <div class="library-workspace">
+          <aside class="collection-panel panel" aria-label="Library collections">
+            <div class="collection-heading"><span class="eyebrow">Collections</span><button class="icon-button collection-add-mini" id="addCollectionMiniButton" aria-label="Add collection">+</button></div>
+            <div id="collectionList" class="collection-list"></div>
+          </aside>
+
+          <div class="library-main-column">
+            <div class="classification-banner hidden" id="classificationBanner">
+              <div><strong>Imported resources need a quick classification check.</strong><span>Use Select visible → Classify, then mark the records reviewed.</span></div>
+              <button class="button button-small button-secondary" id="reviewImportedButton">Review now</button>
+            </div>
+            <div id="materialLibrary" class="material-grid enhanced-material-grid"></div>
+          </div>
+        </div>
       </section>
 
       <section class="view" id="importView">
@@ -150,27 +214,84 @@
         <label class="form-field full-width"><span>Learning objective</span><textarea id="lessonObjective" rows="3"></textarea></label>
         <label class="form-field full-width"><span>Notes</span><textarea id="lessonNotes" rows="3"></textarea></label>
         <label class="form-field full-width"><span>Material link</span><input id="lessonMaterialUrl" type="url" placeholder="https://…" /></label>
+        <div class="form-field full-width lesson-linked-field"><span>Linked library resources</span><div id="lessonLinkedResources" class="lesson-linked-resources"><span class="modal-subtitle">Save the lesson, then attach resources from Library.</span></div></div>
       </div>
       <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteLessonButton">Delete</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save lesson</button></div></div>
     </form>
   </dialog>
 
-  <dialog id="materialDialog" class="modal">
+  <dialog id="materialDialog" class="modal modal-library">
     <form method="dialog" id="materialForm">
-      <div class="modal-header"><div><span class="eyebrow">Library resource</span><h3>Add resource</h3></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <div class="modal-header">
+        <div><span class="eyebrow">Library resource</span><h3 id="materialDialogTitle">Add resource</h3><p id="materialUsageSummary" class="modal-subtitle"></p></div>
+        <button class="close-button" type="button" data-close-dialog>×</button>
+      </div>
+      <input type="hidden" id="materialId" />
       <div class="form-grid">
         <label class="form-field full-width"><span>Title</span><input id="materialTitle" required /></label>
-        <label class="form-field"><span>Type</span><select id="materialType"><option>Slides</option><option>Worksheet</option><option>Drive</option><option>Website</option><option>Video</option><option>Other</option></select></label>
-        <label class="form-field"><span>Grade</span><input id="materialGrade" /></label>
+        <label class="form-field"><span>Type</span><select id="materialType"><option>Slides</option><option>Worksheet</option><option>Drive</option><option>Website</option><option>Video</option><option>Book</option><option>Image</option><option>Audio</option><option>Assessment</option><option>Other</option></select></label>
+        <label class="form-field"><span>Collection</span><select id="materialCollection"><option value="">Unfiled</option></select></label>
+        <label class="form-field"><span>Grade</span><input id="materialGrade" placeholder="Grade 3" /></label>
         <label class="form-field"><span>Skill</span><input id="materialSkill" placeholder="Reading, Speaking…" /></label>
         <label class="form-field"><span>Topic</span><input id="materialTopic" /></label>
-        <label class="form-field"><span>Unit / learner</span><input id="materialUnit" /></label>
-        <label class="form-field"><span>Tags</span><input id="materialTags" placeholder="game, vocabulary" /></label>
+        <label class="form-field"><span>Unit</span><input id="materialUnit" /></label>
+        <label class="form-field"><span>Learner / audience</span><input id="materialLearner" /></label>
+        <label class="form-field"><span>Tags</span><input id="materialTags" placeholder="game, vocabulary, review" /></label>
         <label class="form-field full-width"><span>Link</span><input id="materialUrl" type="url" placeholder="https://…" /></label>
-        <label class="form-field full-width"><span>Notes</span><textarea id="materialNotes" rows="3"></textarea></label>
+        <label class="form-field full-width"><span>Notes</span><textarea id="materialNotes" rows="4"></textarea></label>
+        <label class="checkbox-field"><input type="checkbox" id="materialFavorite" /><span>Favorite resource</span></label>
+        <label class="checkbox-field"><input type="checkbox" id="materialReviewed" checked /><span>Classification reviewed</span></label>
       </div>
-      <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save resource</button></div></div>
+      <div class="modal-actions">
+        <div class="modal-left-actions">
+          <button class="button button-danger hidden" type="button" id="deleteMaterialButton">Delete</button>
+          <button class="button button-secondary hidden" type="button" id="duplicateMaterialButton">Duplicate</button>
+        </div>
+        <div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save resource</button></div>
+      </div>
     </form>
+  </dialog>
+
+  <dialog id="collectionDialog" class="modal modal-small">
+    <form method="dialog" id="collectionForm">
+      <div class="modal-header"><div><span class="eyebrow">Library organization</span><h3 id="collectionDialogTitle">New collection</h3></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <input type="hidden" id="collectionId" />
+      <label class="form-field full-width"><span>Collection name</span><input id="collectionName" required maxlength="80" placeholder="Unit 1, CEO Chinese, Reading games…" /></label>
+      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteCollectionButton">Delete collection</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save collection</button></div></div>
+    </form>
+  </dialog>
+
+  <dialog id="bulkEditDialog" class="modal">
+    <form method="dialog" id="bulkEditForm">
+      <div class="modal-header"><div><span class="eyebrow">Bulk classification</span><h3>Update selected resources</h3><p class="modal-subtitle">Blank fields will remain unchanged.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <div class="form-grid">
+        <label class="form-field"><span>Collection</span><select id="bulkCollection"><option value="">Leave unchanged</option><option value="__unfiled__">Move to Unfiled</option></select></label>
+        <label class="form-field"><span>Grade</span><input id="bulkGrade" /></label>
+        <label class="form-field"><span>Skill</span><input id="bulkSkill" /></label>
+        <label class="form-field"><span>Topic</span><input id="bulkTopic" /></label>
+        <label class="form-field"><span>Unit</span><input id="bulkUnit" /></label>
+        <label class="form-field"><span>Learner / audience</span><input id="bulkLearner" /></label>
+        <label class="form-field full-width"><span>Add tags</span><input id="bulkTags" placeholder="Comma-separated; existing tags are preserved" /></label>
+        <label class="checkbox-field full-width"><input type="checkbox" id="bulkMarkReviewed" /><span>Mark classification reviewed</span></label>
+      </div>
+      <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Apply changes</button></div></div>
+    </form>
+  </dialog>
+
+  <dialog id="attachResourceDialog" class="modal modal-small">
+    <form method="dialog" id="attachResourceForm">
+      <div class="modal-header"><div><span class="eyebrow">Connect resource</span><h3>Attach to a lesson</h3><p id="attachResourceName" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <input type="hidden" id="attachMaterialId" />
+      <label class="form-field full-width"><span>Lesson</span><select id="attachLessonId" required></select></label>
+      <label class="checkbox-field full-width"><input type="checkbox" id="setPrimaryMaterialLink" checked /><span>Use this resource as the lesson’s primary material link when empty</span></label>
+      <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Attach resource</button></div></div>
+    </form>
+  </dialog>
+
+  <dialog id="duplicatesDialog" class="modal modal-wide">
+    <div class="modal-header"><div><span class="eyebrow">Library cleanup</span><h3>Possible duplicate resources</h3><p class="modal-subtitle">Matches are based on the same URL or the same normalized title and type.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+    <div id="duplicateGroups" class="duplicate-groups"></div>
+    <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Close</button><button class="button button-primary" id="mergeAllDuplicatesButton" type="button">Merge all groups</button></div></div>
   </dialog>
 
   <dialog id="bumpDialog" class="modal modal-small">
@@ -189,6 +310,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button></div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app-v2a4.js"></script>
+  <script src="app-v2b-core.js"></script>
+  <script src="library-v2b.js"></script>
 </body>
 </html>

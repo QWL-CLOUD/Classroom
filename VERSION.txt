@@ -1,2 +1,2 @@
-Classroom Sprint 2A.4
-Fix: Monday and Tuesday are always reachable and the week opens at Monday.
+Classroom Sprint 2B — Library
+Expected files: index.html, app-v2b-core.js, library-v2b.js, styles-v2b.css
