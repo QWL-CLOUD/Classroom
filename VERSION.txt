@@ -1,0 +1,3 @@
+Classroom Sprint 2A Hotfix
+Purpose: prevent old index.html and new app.js from being mixed by browser/GitHub Pages caching.
+Expected sidebar: Overview, Weekly planner, One-on-one sessions, Library, Import center.
