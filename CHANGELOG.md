@@ -1,11 +1,13 @@
 # Changelog
 
-## Sprint 4 — Automation
+## Sprint 5 — Teaching Memory
 
-- Added a safe Automation workspace.
-- Added recurring rules and preview-only generation.
-- Added calendar-closure and overdue-lesson review.
-- Added learner-plan scheduling suggestions and missing-material checks.
-- Added lesson statuses and quick Complete action.
-- Added one-step automation undo and local run history.
-- Preserved the Sprint 3 corrected navigation and inline top search.
+- Added Teaching Memory as a third tab within Learner Planning.
+- Added individual and small-group teaching observations.
+- Added strategy, challenge, evidence, next-step, review-date, status, tags, and pin fields.
+- Added links from memories to lessons and learner plans.
+- Added quick memory creation from learners, plans, and weekly lessons.
+- Added post-completion reflection prompt.
+- Added memory search, filters, export, resolve, and undo.
+- Added due memory follow-ups to Automation review.
+- Preserved the existing navigation, inline search, planner, library, import, automation, and local-folder backup model.

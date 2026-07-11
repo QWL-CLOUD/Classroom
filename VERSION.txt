@@ -1,2 +1,3 @@
-Classroom Sprint 4 Automation
-Expected navigation: Overview, Weekly Planner, Learners, Learner Planning, Library, Automation, Import Center, Storage & Backup.
+Classroom Sprint 5 Teaching Memory
+Expected navigation remains: Overview, Weekly Planner, Learners, Learner Planning, Library, Automation, Import Center, Storage & Backup.
+Teaching Memory is the third tab inside Learner Planning.

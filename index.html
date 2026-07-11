@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Sprint 4 Automation</title>
+  <title>Classroom · Sprint 5 Teaching Memory</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v4.css" />
+  <link rel="stylesheet" href="styles-v5.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -22,7 +22,7 @@
         <button class="nav-item" data-view="learners">Learners</button>
         <button class="nav-item" data-view="learnerPlanning">Learner Planning</button>
         <button class="nav-item" data-view="library">Library</button>
-        <button class="nav-item nav-new" data-view="automation"><span>Automation</span><small>NEW</small></button>
+        <button class="nav-item" data-view="automation">Automation</button>
         <button class="nav-item nav-new" data-view="import"><span>Import center</span><small>NEW</small></button>
         <button class="nav-item nav-new" data-view="storage"><span>Storage &amp; backup</span><small>LOCAL</small></button>
       </nav>
@@ -32,7 +32,7 @@
         <strong>Personal data stays local.</strong>
         <p>Import schedules, learners, and teaching records into this browser. They are not written to GitHub.</p>
       </div>
-      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 4 · Safe automation</span></p>
+      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 5 · Teaching memory</span></p>
     </aside>
 
     <main class="main-content">
@@ -53,6 +53,7 @@
                 <button class="search-scope-chip" type="button" data-search-scope="material">Library</button>
                 <button class="search-scope-chip" type="button" data-search-scope="learner">Learners</button>
                 <button class="search-scope-chip" type="button" data-search-scope="plan">Plans</button>
+                <button class="search-scope-chip" type="button" data-search-scope="memory">Memory</button>
               </div>
               <span id="globalSearchSummary">Type to search this local workspace.</span>
             </div>
@@ -145,6 +146,7 @@
             <p>Create longer-term plans for selected individuals and small groups. These plans are separate from the regular whole-class weekly schedule.</p>
           </div>
           <div class="learner-header-actions">
+            <button class="button button-secondary" id="addTeachingMemoryButton">+ Teaching memory</button>
             <button class="button button-secondary" id="addGroupPlanButton">+ Small-group plan</button>
             <button class="button button-primary" id="addIndividualPlanButton">+ Individual plan</button>
           </div>
@@ -158,14 +160,42 @@
         <div class="workspace-tabs" role="tablist" aria-label="Learner plan types">
           <button class="workspace-tab active" type="button" data-plan-tab="individual">Individual Plans</button>
           <button class="workspace-tab" type="button" data-plan-tab="group">Small-Group Plans</button>
+          <button class="workspace-tab" type="button" data-plan-tab="memory">Teaching Memory</button>
         </div>
 
-        <div class="panel plan-toolbar">
-          <input id="planSearchInput" class="search-input" type="search" placeholder="Search target, goal, focus, tags, or notes…" />
-          <select id="planStatusFilter" class="select-input"><option value="all">All statuses</option><option>Active</option><option>Paused</option><option>Completed</option></select>
-          <span id="planResultCount" class="library-result-count">0 plans</span>
+        <div id="learnerPlansPanel">
+          <div class="panel plan-toolbar">
+            <input id="planSearchInput" class="search-input" type="search" placeholder="Search target, goal, focus, tags, or notes…" />
+            <select id="planStatusFilter" class="select-input"><option value="all">All statuses</option><option>Active</option><option>Paused</option><option>Completed</option></select>
+            <span id="planResultCount" class="library-result-count">0 plans</span>
+          </div>
+          <div id="learnerPlanList" class="learner-plan-grid"></div>
         </div>
-        <div id="learnerPlanList" class="learner-plan-grid"></div>
+
+        <div id="teachingMemoryPanel" class="hidden">
+          <div class="memory-summary-grid">
+            <article class="library-stat"><span>Total memories</span><strong id="memoryTotalCount">0</strong></article>
+            <article class="library-stat warning-stat"><span>Needs follow-up</span><strong id="memoryFollowUpCount">0</strong></article>
+            <article class="library-stat"><span>Added this month</span><strong id="memoryMonthCount">0</strong></article>
+            <article class="library-stat"><span>Review due</span><strong id="memoryReviewDueCount">0</strong></article>
+          </div>
+
+          <div class="memory-privacy-banner">
+            <div><strong>Private teaching record</strong><span>Teaching Memory is stored in your browser and connected Classroom Data folder. It is never written into the public GitHub files.</span></div>
+            <div class="memory-banner-actions"><button class="button button-secondary button-small" id="exportMemoryButton">Export memories</button><button class="button button-undo button-small" id="undoMemoryButton" disabled>↶ Undo memory action</button></div>
+          </div>
+
+          <div class="panel memory-toolbar">
+            <input id="memorySearchInput" class="search-input" type="search" placeholder="Search learner, observation, strategy, challenge, next step, or tags…" />
+            <select id="memoryTargetTypeFilter" class="select-input"><option value="all">Individuals & groups</option><option value="individual">Individuals</option><option value="group">Small groups</option></select>
+            <select id="memoryCategoryFilter" class="select-input"><option value="all">All categories</option></select>
+            <select id="memoryStatusFilter" class="select-input"><option value="all">All follow-up statuses</option><option>No action</option><option>Needs follow-up</option><option>Resolved</option></select>
+            <select id="memoryTargetFilter" class="select-input"><option value="all">All learners</option></select>
+            <select id="memorySort" class="select-input"><option value="newest">Newest first</option><option value="review">Review date</option><option value="target">Learner A–Z</option></select>
+            <span id="memoryResultCount" class="library-result-count">0 memories</span>
+          </div>
+          <div id="teachingMemoryList" class="teaching-memory-list"></div>
+        </div>
       </section>
 
       <section class="view" id="libraryView">
@@ -497,6 +527,32 @@
     </form>
   </dialog>
 
+
+  <dialog id="teachingMemoryDialog" class="modal modal-wide memory-dialog">
+    <form method="dialog" id="teachingMemoryForm">
+      <div class="modal-header"><div><span class="eyebrow">Teaching Memory</span><h3 id="teachingMemoryDialogTitle">Add teaching memory</h3><p class="modal-subtitle">Capture what you noticed, what worked, and what should happen next.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <input type="hidden" id="teachingMemoryId" />
+      <div class="form-grid">
+        <label class="form-field"><span>For</span><select id="memoryTargetType"><option value="individual">Individual</option><option value="group">Small group</option></select></label>
+        <label class="form-field"><span>Learner / group</span><select id="memoryTargetId" required><option value="">Select…</option></select></label>
+        <label class="form-field"><span>Date</span><input id="memoryDate" type="date" required /></label>
+        <label class="form-field"><span>Category</span><select id="memoryCategory"><option>Progress</option><option>Challenge / misconception</option><option>Engagement</option><option>Preference</option><option>Strategy that worked</option><option>Assessment evidence</option><option>Communication</option><option>Follow-up</option><option>Other</option></select></label>
+        <label class="form-field"><span>Follow-up status</span><select id="memoryStatus"><option>No action</option><option>Needs follow-up</option><option>Resolved</option></select></label>
+        <label class="form-field"><span>Review date</span><input id="memoryReviewDate" type="date" /></label>
+        <label class="form-field full-width"><span>Observation</span><textarea id="memoryObservation" rows="4" required placeholder="What did you notice? Use specific, factual language."></textarea></label>
+        <label class="form-field full-width"><span>What worked</span><textarea id="memoryWhatWorked" rows="3" placeholder="Activity, prompt, scaffold, material, grouping, or routine that helped."></textarea></label>
+        <label class="form-field full-width"><span>Challenge / misconception</span><textarea id="memoryChallenge" rows="3" placeholder="What remained difficult or needs closer attention?"></textarea></label>
+        <label class="form-field full-width"><span>Evidence or example</span><textarea id="memoryEvidence" rows="3" placeholder="A response, work sample, behavior, assessment result, or quotation."></textarea></label>
+        <label class="form-field full-width"><span>Next step</span><textarea id="memoryNextStep" rows="3" placeholder="What should you revisit, change, or try next?"></textarea></label>
+        <label class="form-field"><span>Linked learner plan</span><select id="memoryPlanId"><option value="">None</option></select></label>
+        <label class="form-field"><span>Linked lesson</span><select id="memoryLessonId"><option value="">None</option></select></label>
+        <label class="form-field full-width"><span>Tags</span><input id="memoryTags" placeholder="reading, tone, confidence, review" /></label>
+        <label class="checkbox-field full-width"><input type="checkbox" id="memoryPinned" /><span>Pin this memory near the top</span></label>
+      </div>
+      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteTeachingMemoryButton">Delete memory</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save memory</button></div></div>
+    </form>
+  </dialog>
+
   <dialog id="searchDetailDialog" class="modal modal-wide">
     <div class="modal-header"><div><span class="eyebrow" id="searchDetailEyebrow">Search result</span><h3 id="searchDetailTitle">Details</h3><p id="searchDetailSubtitle" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
     <div id="searchDetailBody" class="search-detail-body"></div>
@@ -648,11 +704,12 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button></div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app-v4-core.js"></script>
-  <script src="library-v4.js"></script>
-  <script src="storage-v4.js"></script>
-  <script src="learner-planning-v4.js"></script>
-  <script src="automation-v4.js"></script>
-  <script src="inline-search-v4.js"></script>
+  <script src="app-v5-core.js"></script>
+  <script src="library-v5.js"></script>
+  <script src="storage-v5.js"></script>
+  <script src="learner-planning-v5.js"></script>
+  <script src="teaching-memory-v5.js"></script>
+  <script src="automation-v5.js"></script>
+  <script src="inline-search-v5.js"></script>
 </body>
 </html>
