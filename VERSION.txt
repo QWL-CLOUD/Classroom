@@ -1,2 +1,3 @@
-Classroom Sprint 3 — Search
-Expected URL: https://qwl-cloud.github.io/Classroom/?v=3-search
+Classroom Sprint 3 Corrected
+Build: interface consolidation
+Expected navigation: Overview, Weekly Planner, Learners, Learner Planning, Library, Import Center, Storage & Backup

@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Sprint 3 Search</title>
+  <title>Classroom · Sprint 3 Corrected</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v3.css" />
+  <link rel="stylesheet" href="styles-v3c.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -19,8 +19,8 @@
       <nav class="nav-list">
         <button class="nav-item active" data-view="dashboard">Overview</button>
         <button class="nav-item" data-view="calendar">Weekly planner</button>
-        <button class="nav-item" data-view="sessions">One-on-one sessions</button>
-        <button class="nav-item nav-new" data-view="search"><span>Search</span><small>NEW</small></button>
+        <button class="nav-item" data-view="learners">Learners</button>
+        <button class="nav-item" data-view="learnerPlanning">Learner Planning</button>
         <button class="nav-item" data-view="library">Library</button>
         <button class="nav-item nav-new" data-view="import"><span>Import center</span><small>NEW</small></button>
         <button class="nav-item nav-new" data-view="storage"><span>Storage &amp; backup</span><small>LOCAL</small></button>
@@ -31,14 +31,35 @@
         <strong>Personal data stays local.</strong>
         <p>Import schedules, learners, and teaching records into this browser. They are not written to GitHub.</p>
       </div>
-      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 3 · Search</span></p>
+      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 3 · Interface consolidation</span></p>
     </aside>
 
     <main class="main-content">
       <header class="topbar">
-        <div><p class="eyebrow" id="viewEyebrow">Workspace</p><h2 id="viewTitle">Teaching overview</h2></div>
+        <div class="topbar-title"><p class="eyebrow" id="viewEyebrow">Workspace</p><h2 id="viewTitle">Teaching overview</h2></div>
+        <div class="global-search-area" id="globalSearchArea">
+          <div class="global-search-input-wrap">
+            <span class="global-search-icon" aria-hidden="true">⌕</span>
+            <input id="globalSearchInput" type="search" autocomplete="off" placeholder="Search lessons, resources, learners, plans…" aria-label="Search Classroom" />
+            <kbd>⌘K</kbd>
+            <button class="global-search-clear hidden" id="globalSearchClear" type="button" aria-label="Clear search">×</button>
+          </div>
+          <div class="global-search-panel hidden" id="globalSearchPanel" role="dialog" aria-label="Search results">
+            <div class="global-search-panel-head">
+              <div class="search-scope-chips" id="globalSearchScopes">
+                <button class="search-scope-chip active" type="button" data-search-scope="all">All</button>
+                <button class="search-scope-chip" type="button" data-search-scope="lesson">Lessons</button>
+                <button class="search-scope-chip" type="button" data-search-scope="material">Library</button>
+                <button class="search-scope-chip" type="button" data-search-scope="learner">Learners</button>
+                <button class="search-scope-chip" type="button" data-search-scope="plan">Plans</button>
+              </div>
+              <span id="globalSearchSummary">Type to search this local workspace.</span>
+            </div>
+            <div class="global-search-results" id="globalSearchResults"></div>
+            <div class="global-search-help"><span>Search stays in this browser.</span><span><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>Enter</kbd> open · <kbd>Esc</kbd> close</span></div>
+          </div>
+        </div>
         <div class="topbar-actions">
-          <button class="button button-secondary global-search-button" id="globalSearchButton" data-go-to="search" type="button">⌕ Search <kbd>⌘K</kbd></button>
           <button class="folder-status-pill" id="folderStatusPill" data-go-to="storage" type="button"><span class="folder-status-dot"></span><span id="folderStatusPillText">Browser only</span></button>
           <button class="button button-secondary" id="exportButton">Export backup</button>
           <button class="button button-primary" id="addLessonButton">+ Add lesson</button>
@@ -52,7 +73,7 @@
         </div>
         <div class="stats-grid">
           <article class="stat-card"><span>This week</span><strong id="weekLessonCount">0</strong><p>planned lessons</p></article>
-          <article class="stat-card"><span>One-on-one</span><strong id="oneOnOneCount">0</strong><p>sessions this week</p></article>
+          <article class="stat-card"><span>Learner Planning</span><strong id="learnerPlanCount">0</strong><p>active individual and group plans</p></article>
           <article class="stat-card"><span>Library</span><strong id="materialCount">0</strong><p>saved resources</p></article>
           <article class="stat-card"><span>Imports</span><strong id="importCount">0</strong><p>local import batches</p></article>
         </div>
@@ -83,93 +104,67 @@
         </div>
       </section>
 
-      <section class="view" id="sessionsView">
-        <div class="section-intro"><div><span class="eyebrow">Individualized instruction</span><h3>One-on-one session planning</h3><p>Keep goals, lesson focus, notes, and linked materials together for each learner.</p></div><button class="button button-primary" id="addSessionButton">+ New one-on-one session</button></div>
-        <div id="sessionList" class="session-grid"></div>
+      <section class="view" id="learnersView">
+        <div class="section-intro learner-intro">
+          <div>
+            <span class="eyebrow">Individuals and small groups</span>
+            <h3>Learners</h3>
+            <p>Keep a focused directory for the people and small groups who need additional planning. Regular whole-class teaching stays in Weekly Planner.</p>
+          </div>
+          <div class="learner-header-actions">
+            <button class="button button-secondary" id="addSmallGroupButton">+ Small group</button>
+            <button class="button button-primary" id="addIndividualButton">+ Individual</button>
+          </div>
+        </div>
+
+        <div class="learner-stat-grid">
+          <article class="library-stat"><span>Individuals</span><strong id="individualCount">0</strong></article>
+          <article class="library-stat"><span>Small groups</span><strong id="smallGroupCount">0</strong></article>
+          <article class="library-stat"><span>Active plans</span><strong id="activePlanCount">0</strong></article>
+          <article class="library-stat"><span>Teaching memories</span><strong id="learnerMemoryCount">0</strong></article>
+        </div>
+
+        <div class="workspace-tabs" role="tablist" aria-label="Learner types">
+          <button class="workspace-tab active" id="individualsTab" type="button" data-learner-tab="individuals">Individuals</button>
+          <button class="workspace-tab" id="smallGroupsTab" type="button" data-learner-tab="groups">Small Groups</button>
+        </div>
+
+        <div class="panel learner-toolbar">
+          <input id="learnerSearchInput" class="search-input" type="search" placeholder="Search name, grade, goals, focus, or notes…" />
+          <span id="learnerResultCount" class="library-result-count">0 records</span>
+        </div>
+        <div id="learnerWorkspaceList" class="learner-card-grid"></div>
       </section>
 
-
-      <section class="view" id="searchView">
-        <div class="section-intro search-intro">
+      <section class="view" id="learnerPlanningView">
+        <div class="section-intro learner-intro">
           <div>
-            <span class="eyebrow">Across your local workspace</span>
-            <h3>Search</h3>
-            <p>Find lessons, resources, calendar events, learners, teaching memory, templates, and import records without sending a query outside this browser.</p>
+            <span class="eyebrow">Focused support</span>
+            <h3>Learner Planning</h3>
+            <p>Create longer-term plans for selected individuals and small groups. These plans are separate from the regular whole-class weekly schedule.</p>
           </div>
-          <div class="search-header-actions">
-            <button class="button button-secondary" id="clearSearchButton">Clear search</button>
-            <button class="button button-primary" id="saveSearchButton">Save current search</button>
+          <div class="learner-header-actions">
+            <button class="button button-secondary" id="addGroupPlanButton">+ Small-group plan</button>
+            <button class="button button-primary" id="addIndividualPlanButton">+ Individual plan</button>
           </div>
         </div>
 
-        <div class="privacy-banner search-privacy-banner">
-          <strong>Private local search</strong>
-          <span>The index is built in this browser from your current Classroom workspace. Search terms and results are not published to GitHub.</span>
+        <div class="legacy-migration-banner hidden" id="legacyMigrationBanner">
+          <div><strong>Previous one-on-one sessions were preserved.</strong><span>They now appear as individual plans and remain on the Weekly Planner.</span></div>
+          <button class="text-button" id="dismissMigrationBanner" type="button">Dismiss</button>
         </div>
 
-        <section class="panel search-command-panel">
-          <div class="global-search-box">
-            <span class="global-search-icon" aria-hidden="true">⌕</span>
-            <input id="globalSearchInput" type="search" autocomplete="off" placeholder="Search a lesson, student, topic, tag, note, file name…" aria-label="Search the Classroom workspace" />
-            <button class="search-input-clear hidden" id="clearSearchInputButton" type="button" aria-label="Clear search text">×</button>
-          </div>
-          <div class="search-filter-grid">
-            <label class="form-field"><span>Search in</span><select id="searchScope">
-              <option value="all">Everything</option>
-              <option value="lesson">Lessons</option>
-              <option value="material">Library resources</option>
-              <option value="calendar">School calendar</option>
-              <option value="student">Learners</option>
-              <option value="memory">Teaching memory</option>
-              <option value="template">Lesson templates</option>
-              <option value="import">Import history</option>
-            </select></label>
-            <label class="form-field"><span>From date</span><input id="searchDateFrom" type="date" /></label>
-            <label class="form-field"><span>To date</span><input id="searchDateTo" type="date" /></label>
-            <label class="form-field"><span>Learner / audience</span><select id="searchLearner"><option value="all">All learners</option></select></label>
-            <label class="form-field"><span>Tags contain</span><input id="searchTags" placeholder="reading, Unit 2" /></label>
-            <label class="form-field"><span>Sort results</span><select id="searchSort">
-              <option value="relevance">Best match</option>
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-              <option value="title">Title A–Z</option>
-              <option value="type">Group by type</option>
-            </select></label>
-          </div>
-          <div class="search-command-footer">
-            <div id="activeSearchFilters" class="active-search-filters"></div>
-            <span class="search-shortcut-note">Press <kbd>⌘K</kbd> or <kbd>Ctrl K</kbd> from anywhere.</span>
-          </div>
-        </section>
-
-        <div class="search-stat-grid">
-          <article class="search-stat"><span>All matches</span><strong id="searchAllCount">0</strong></article>
-          <article class="search-stat"><span>Lessons</span><strong id="searchLessonCount">0</strong></article>
-          <article class="search-stat"><span>Resources</span><strong id="searchResourceCount">0</strong></article>
-          <article class="search-stat"><span>Learners &amp; memory</span><strong id="searchPeopleCount">0</strong></article>
+        <div class="workspace-tabs" role="tablist" aria-label="Learner plan types">
+          <button class="workspace-tab active" type="button" data-plan-tab="individual">Individual Plans</button>
+          <button class="workspace-tab" type="button" data-plan-tab="group">Small-Group Plans</button>
         </div>
 
-        <div class="search-layout">
-          <aside class="panel saved-search-panel">
-            <div class="saved-search-heading"><div><span class="eyebrow">Reusable filters</span><h3>Saved searches</h3></div></div>
-            <div id="savedSearchList" class="saved-search-list"></div>
-            <div class="quick-searches">
-              <span class="eyebrow">Quick searches</span>
-              <button class="quick-search-button" data-search-preset="upcoming"><strong>Upcoming 30 days</strong><span>Lessons and sessions</span></button>
-              <button class="quick-search-button" data-search-preset="one-on-one"><strong>One-on-one</strong><span>Individual sessions</span></button>
-              <button class="quick-search-button" data-search-preset="resources"><strong>All resources</strong><span>Browse the Library index</span></button>
-              <button class="quick-search-button" data-search-preset="memory"><strong>Teaching memory</strong><span>Observations and next steps</span></button>
-            </div>
-          </aside>
-
-          <section class="search-results-column">
-            <div class="search-results-heading">
-              <div><span class="eyebrow">Results</span><h3 id="searchResultsTitle">Your workspace</h3><p id="searchResultsSummary">Enter a word or use filters to narrow your local data.</p></div>
-              <span id="searchResultLimitNote" class="search-limit-note"></span>
-            </div>
-            <div id="searchResults" class="search-results" aria-live="polite"></div>
-          </section>
+        <div class="panel plan-toolbar">
+          <input id="planSearchInput" class="search-input" type="search" placeholder="Search target, goal, focus, tags, or notes…" />
+          <select id="planStatusFilter" class="select-input"><option value="all">All statuses</option><option>Active</option><option>Paused</option><option>Completed</option></select>
+          <span id="planResultCount" class="library-result-count">0 plans</span>
         </div>
+        <div id="learnerPlanList" class="learner-plan-grid"></div>
       </section>
 
       <section class="view" id="libraryView">
@@ -396,11 +391,54 @@
   </div>
 
 
-  <dialog id="saveSearchDialog" class="modal modal-small">
-    <form method="dialog" id="saveSearchForm">
-      <div class="modal-header"><div><span class="eyebrow">Reusable search</span><h3>Save current search</h3><p class="modal-subtitle">The saved search is included in your local workspace backup.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <label class="form-field full-width"><span>Search name</span><input id="savedSearchName" required maxlength="80" placeholder="Upcoming CEO sessions, Grade 3 reading…" /></label>
-      <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save search</button></div></div>
+  <dialog id="individualDialog" class="modal">
+    <form method="dialog" id="individualForm">
+      <div class="modal-header"><div><span class="eyebrow">Learner directory</span><h3 id="individualDialogTitle">Add individual</h3><p class="modal-subtitle">Only add people who need individual tracking or focused planning.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <input type="hidden" id="individualId" />
+      <div class="form-grid">
+        <label class="form-field full-width"><span>Name</span><input id="individualName" required maxlength="100" /></label>
+        <label class="form-field"><span>Grade / level</span><input id="individualGrade" placeholder="Grade 3, Beginner…" /></label>
+        <label class="form-field"><span>Current group</span><input id="individualGroup" placeholder="Optional" /></label>
+        <label class="form-field full-width"><span>Goals</span><textarea id="individualGoals" rows="3"></textarea></label>
+        <label class="form-field full-width"><span>Interests and preferences</span><textarea id="individualInterests" rows="3"></textarea></label>
+        <label class="form-field full-width"><span>Notes</span><textarea id="individualNotes" rows="3"></textarea></label>
+      </div>
+      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteIndividualButton">Delete</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save individual</button></div></div>
+    </form>
+  </dialog>
+
+  <dialog id="smallGroupDialog" class="modal">
+    <form method="dialog" id="smallGroupForm">
+      <div class="modal-header"><div><span class="eyebrow">Learner directory</span><h3 id="smallGroupDialogTitle">Add small group</h3><p class="modal-subtitle">Small groups are for focused reading, intervention, tutoring, projects, or coaching—not the regular whole class.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <input type="hidden" id="smallGroupId" />
+      <div class="form-grid">
+        <label class="form-field full-width"><span>Group name</span><input id="smallGroupName" required maxlength="100" /></label>
+        <label class="form-field"><span>Focus</span><input id="smallGroupFocus" placeholder="Reading fluency, speaking…" /></label>
+        <label class="form-field"><span>Typical cadence</span><input id="smallGroupCadence" placeholder="Saturdays, twice weekly…" /></label>
+        <div class="form-field full-width"><span>Members</span><div id="groupMemberPicker" class="member-picker"></div></div>
+        <label class="form-field full-width"><span>Notes</span><textarea id="smallGroupNotes" rows="3"></textarea></label>
+      </div>
+      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteSmallGroupButton">Delete</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save small group</button></div></div>
+    </form>
+  </dialog>
+
+  <dialog id="learnerPlanDialog" class="modal modal-wide">
+    <form method="dialog" id="learnerPlanForm">
+      <div class="modal-header"><div><span class="eyebrow">Focused planning</span><h3 id="learnerPlanDialogTitle">Add learner plan</h3><p class="modal-subtitle">Plans organize goals and next steps; scheduled whole-class lessons remain in Weekly Planner.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <input type="hidden" id="learnerPlanId" />
+      <div class="form-grid">
+        <label class="form-field"><span>Plan type</span><select id="learnerPlanType"><option value="individual">Individual Plan</option><option value="group">Small-Group Plan</option></select></label>
+        <label class="form-field"><span>Individual or small group</span><select id="learnerPlanTarget" required></select></label>
+        <label class="form-field full-width"><span>Plan title</span><input id="learnerPlanTitle" required maxlength="140" /></label>
+        <label class="form-field"><span>Status</span><select id="learnerPlanStatus"><option>Active</option><option>Paused</option><option>Completed</option></select></label>
+        <label class="form-field"><span>Next session / review date</span><input id="learnerPlanNextDate" type="date" /></label>
+        <label class="form-field"><span>Focus area</span><input id="learnerPlanFocus" placeholder="Reading, classroom language…" /></label>
+        <label class="form-field"><span>Cadence</span><input id="learnerPlanCadence" placeholder="Weekly, every Saturday…" /></label>
+        <label class="form-field full-width"><span>Goals</span><textarea id="learnerPlanGoals" rows="3"></textarea></label>
+        <label class="form-field full-width"><span>Plan and next steps</span><textarea id="learnerPlanNotes" rows="4"></textarea></label>
+        <label class="form-field full-width"><span>Tags</span><input id="learnerPlanTags" placeholder="reading, review, summer" /></label>
+      </div>
+      <div class="modal-actions"><div class="modal-left-actions"><button class="button button-danger hidden" type="button" id="deleteLearnerPlanButton">Delete</button><button class="button button-secondary hidden" type="button" id="scheduleLearnerPlanButton">Add session to Weekly Planner</button></div><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save plan</button></div></div>
     </form>
   </dialog>
 
@@ -419,7 +457,7 @@
         <label class="form-field"><span>Date</span><input id="lessonDate" type="date" required /></label>
         <label class="form-field"><span>Start time</span><input id="lessonTime" type="time" required /></label>
         <label class="form-field"><span>Duration (minutes)</span><input id="lessonDuration" type="number" min="15" step="5" value="60" required /></label>
-        <label class="form-field"><span>Lesson type</span><select id="lessonType"><option>Class</option><option>One-on-one</option><option>Planning</option></select></label>
+        <label class="form-field"><span>Lesson type</span><select id="lessonType"><option>Class</option><option value="One-on-one">Individual session</option><option>Small-group session</option><option>Planning</option></select></label>
         <label class="form-field full-width"><span>Learner or group</span><input id="lessonLearner" /></label>
         <label class="form-field full-width"><span>Learning objective</span><textarea id="lessonObjective" rows="3"></textarea></label>
         <label class="form-field full-width"><span>Notes</span><textarea id="lessonNotes" rows="3"></textarea></label>
@@ -520,9 +558,10 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button></div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app-v3-core.js"></script>
-  <script src="library-v3.js"></script>
-  <script src="storage-v3.js"></script>
-  <script src="search-v3.js"></script>
+  <script src="app-v3c-core.js"></script>
+  <script src="library-v3c.js"></script>
+  <script src="storage-v3c.js"></script>
+  <script src="learner-planning-v3c.js"></script>
+  <script src="inline-search-v3c.js"></script>
 </body>
 </html>

@@ -1,33 +1,23 @@
-# Classroom — Sprint 3 Search
+# Classroom — Sprint 3 Corrected
 
-Privacy-first teaching workspace for GitHub Pages.
+This release consolidates the agreed interface instead of introducing a separate Search page. It is based on the stable Sprint 2B.1 build.
 
-## New in Sprint 2B.1
+## Navigation
 
-- Connect a user-selected `Classroom Data` folder in desktop Chrome
-- Keep the browser as the fast working copy
-- Save a live workspace file directly to the connected folder
-- Conflict protection when browser and folder copies differ
-- Optional auto-save after Classroom changes
-- Manual timestamped backups
-- Automatic previous-copy recovery before overwriting the live workspace
-- Reconnect and forget-folder controls
-- Browser-download fallback
+- Overview
+- Weekly Planner
+- Learners
+- Learner Planning
+- Library
+- Import Center
+- Storage & Backup
 
-## Privacy
+Whole-class teaching remains in Weekly Planner. Learners and Learner Planning are only for selected individuals and small groups.
 
-The public repository contains only the application. Personalized planner, Library, import, and teaching data remain in browser storage and the folder selected by the user. Do not upload `Classroom Data` or exported backups to the public repository.
+## Search
 
-## Publish
+Search is a text field in the top bar. It never appears as a left-navigation page. Command+K / Ctrl+K focuses the field. Results appear below the field and are generated locally from the browser workspace.
 
-Upload all files from this folder to the root of the GitHub repository, replacing files with the same names. GitHub Pages should publish from `main` and `/(root)`.
+## Data compatibility
 
-
-## Sprint 3 — Search
-
-- Unified local search across lessons, Library resources, school calendar, learners, Teaching Memory, lesson templates, and import history.
-- Filters for record type, date range, learner/audience, tags, and sorting.
-- Saved searches are stored in the Classroom workspace and included in folder backups.
-- Direct actions open lessons in the planner, edit resources, open resource links, or show complete record details.
-- Keyboard shortcut: Command-K on macOS or Ctrl-K on Windows/ChromeOS.
-- The search index is built in the browser and is never sent to GitHub.
+The app continues to use `classroomDataV1`. Existing lessons, Library records, imports, and folder connection remain compatible. Previous one-on-one lessons are preserved in Weekly Planner and also migrated into Individual Plans.
