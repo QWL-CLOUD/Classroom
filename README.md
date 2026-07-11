@@ -1,25 +1,34 @@
-# Classroom — Workspace Consolidation v8
+# Classroom — Core UX Repair v8.1
 
-A privacy-first local teaching workspace for Chrome and GitHub Pages.
+A privacy-first, local teaching workspace for Chrome and GitHub Pages.
 
-## Main improvements
+## This repair release
 
-- Grouped, collapsible navigation that can shrink to the logo
-- Dynamic greeting and configurable Summer Break countdown
-- Today timeline, Calendar services, Students to Notice, Tasks, Reminders, and personal Agenda
-- Monday–Sunday schedule with schedule-aware lesson content
-- Schedule edits can apply to selected weekdays and to one occurrence, future occurrences, or the full default
-- Individual and Small Group learner profiles with their own lesson-plan sequences
-- Multi-file drag-and-drop Import Center
-- Import routing for Schedule, Calendar, Playbook, Library, Learners, Learner Plans, Teaching Memory, Tasks/Agenda, and reference documents
-- XLSX visual schedule parsing plus generic worksheet import
-- CSV/TSV, ICS, JSON, TXT, DOCX, PPTX, PDF, and image intake
-- Import batch removal and imported-data deletion
+- Replaces the Chinese character logo with a clean **C** mark.
+- Uses real line icons for navigation.
+- Fixes the collapsed sidebar: click the **C** to expand it again.
+- Makes **Personal Agenda** a separate list for private appointments, errands, deadlines, and personal events only.
+- Keeps recurring Schedule, Calendar services, and class sessions in **Today** and **Week**, not in Personal Agenda.
+- Improves Import Center selection, multi-sheet workbook handling, manual header/column mapping, and structured import previews.
+- Keeps unmapped source columns inside `sourceRecord`; they are not silently discarded.
+- Refreshes Today and Week immediately after a Schedule or Calendar import.
+
+## Import formats
+
+- XLSX / XLSM
+- CSV / TSV
+- ICS
+- JSON / TXT
+- DOCX / PPTX
+- PDF
+- PNG / JPG / JPEG / HEIC as reference documents
+
+Text-based PDFs can be previewed and conservatively parsed. Scanned/image-only PDFs are **not OCR-processed in this offline build**; they remain local reference documents until records are manually confirmed.
 
 ## Privacy
 
-Personal data is not stored in the public repository. It remains in the browser and, when authorized, the user's Classroom Data folder.
+Personal data is not stored in the public GitHub repository. It remains in the browser and, when authorized, the user's `Classroom Data` folder.
 
-## PDF note
+## Upgrade
 
-This offline build previews PDFs and attempts conservative extraction of simple embedded text. Scanned PDFs and images are not silently OCR-converted; they remain reviewable reference documents until the user manually confirms structured records.
+Upload all files in this folder to the repository root. Do not clear Chrome site data. The build continues using the existing `classroomDataV1` workspace.

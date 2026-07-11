@@ -4,52 +4,70 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Workspace Consolidation</title>
-  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v8.css" />
+  <title>Classroom · Core UX Repair v8.1</title>
+  <link rel="icon" href="assets/favicon-c.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="styles-v8.1.css" />
 </head>
 <body>
+  <svg class="icon-sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-workspace" viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z"/></symbol>
+    <symbol id="i-today" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 8v4l3 2M12 2v2M12 20v2M2 12h2M20 12h2"/></symbol>
+    <symbol id="i-week" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M7 14h3M14 14h3M7 18h3"/></symbol>
+    <symbol id="i-agenda" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3v18M12 8h4M12 12h4M12 16h3"/></symbol>
+    <symbol id="i-learners" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3.5 20c.6-4 2.5-6 5.5-6s5 2 5.5 6M14 15c3.5-.5 5.5 1.2 6 5"/></symbol>
+    <symbol id="i-plan" viewBox="0 0 24 24"><path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H12v18H7.5A3.5 3.5 0 0 0 4 23zM20 5.5A3.5 3.5 0 0 0 16.5 2H12v18h4.5A3.5 3.5 0 0 1 20 23z"/><path d="M7 7h2M15 7h2M7 11h2M15 11h2"/></symbol>
+    <symbol id="i-resources" viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 10h18"/></symbol>
+    <symbol id="i-library" viewBox="0 0 24 24"><path d="M5 4h4v16H5zM10 4h4v16h-4zM15 6l3-1 3 14-3 1z"/></symbol>
+    <symbol id="i-playbook" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m8 8 1.5 1.5L12 7M14 9h3m-9 5 1.5 1.5L12 13m2 2h3"/></symbol>
+    <symbol id="i-system" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2-.7a7 7 0 0 0-.8-1.8l.9-1.9-2.2-2.2-1.9.9a7 7 0 0 0-1.8-.8L10.5 2h-3l-.7 2a7 7 0 0 0-1.8.8l-1.9-.9L.9 6.1 1.8 8a7 7 0 0 0-.8 1.8l-2 .7v3l2 .7a7 7 0 0 0 .8 1.8l-.9 1.9 2.2 2.2 1.9-.9a7 7 0 0 0 1.8.8l.7 2h3l.7-2a7 7 0 0 0 1.8-.8l1.9.9 2.2-2.2-.9-1.9a7 7 0 0 0 .8-1.8z" transform="translate(3 0) scale(.75)"/></symbol>
+    <symbol id="i-schedule" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18"/><circle cx="12" cy="15" r="3"/><path d="M12 13.5V15l1 1"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4M17 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></symbol>
+    <symbol id="i-import" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 18v3h16v-3"/></symbol>
+    <symbol id="i-automation" viewBox="0 0 24 24"><path d="M12 2l1.2 4.1L17 8l-3.8 1.9L12 14l-1.2-4.1L7 8l3.8-1.9zM18.5 13l.7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7zM5.5 14l.8 2.7L9 17.5l-2.7.8L5.5 21l-.8-2.7-2.7-.8 2.7-.8z"/></symbol>
+    <symbol id="i-backup" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M8 4v6M16 14v6"/><circle cx="8" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></symbol>
+  </svg>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
       <div class="brand-row">
-        <button class="brand" data-view-link="today" aria-label="Open Today">
-          <img class="brand-mark" src="assets/logo-li.svg" alt="课" />
+        <button class="brand" id="brandButton" aria-label="Open Today" title="Classroom">
+          <span class="brand-mark" aria-hidden="true">C</span>
           <span class="brand-copy"><strong>Classroom</strong><small>Teaching workspace</small></span>
         </button>
-        <button id="sidebarCollapse" class="sidebar-collapse" title="Collapse navigation" aria-label="Collapse navigation">«</button>
+        <button id="sidebarCollapse" class="sidebar-collapse" title="Collapse navigation" aria-label="Collapse navigation">‹</button>
       </div>
 
       <nav id="mainNav" class="nav-groups" aria-label="Main navigation">
         <details class="nav-group" open>
-          <summary><span class="nav-group-icon">◫</span><span class="nav-label">Workspace</span></summary>
-          <button class="nav-item active" data-view="today"><span>Today</span></button>
-          <button class="nav-item" data-view="week"><span>Week</span></button>
-          <button class="nav-item" data-view="sessions"><span>Agenda</span></button>
+          <summary><svg class="nav-icon"><use href="#i-workspace"></use></svg><span class="nav-label">Workspace</span></summary>
+          <button class="nav-item active" data-view="today" data-label="Today" title="Today"><svg class="nav-icon"><use href="#i-today"></use></svg><span>Today</span></button>
+          <button class="nav-item" data-view="week" data-label="Week" title="Week"><svg class="nav-icon"><use href="#i-week"></use></svg><span>Week</span></button>
+          <button class="nav-item" data-view="sessions" data-label="Personal Agenda" title="Personal Agenda"><svg class="nav-icon"><use href="#i-agenda"></use></svg><span>Personal Agenda</span></button>
         </details>
         <details class="nav-group" open>
-          <summary><span class="nav-group-icon">人</span><span class="nav-label">Learners</span></summary>
-          <button class="nav-item" data-view="learners"><span>Individuals &amp; Small Groups</span></button>
-          <button class="nav-item" data-view="learnerPlanning"><span>Learner Lesson Plans</span></button>
+          <summary><svg class="nav-icon"><use href="#i-learners"></use></svg><span class="nav-label">Learners</span></summary>
+          <button class="nav-item" data-view="learners" data-label="Learners" title="Learners"><svg class="nav-icon"><use href="#i-learners"></use></svg><span>Individuals &amp; Small Groups</span></button>
+          <button class="nav-item" data-view="learnerPlanning" data-label="Lesson Plans" title="Learner Lesson Plans"><svg class="nav-icon"><use href="#i-plan"></use></svg><span>Learner Lesson Plans</span></button>
         </details>
         <details class="nav-group">
-          <summary><span class="nav-group-icon">册</span><span class="nav-label">Resources</span></summary>
-          <button class="nav-item" data-view="library"><span>Library</span></button>
-          <button class="nav-item" data-view="playbook"><span>Classroom Playbook</span></button>
+          <summary><svg class="nav-icon"><use href="#i-resources"></use></svg><span class="nav-label">Resources</span></summary>
+          <button class="nav-item" data-view="library" data-label="Library" title="Library"><svg class="nav-icon"><use href="#i-library"></use></svg><span>Library</span></button>
+          <button class="nav-item" data-view="playbook" data-label="Playbook" title="Classroom Playbook"><svg class="nav-icon"><use href="#i-playbook"></use></svg><span>Classroom Playbook</span></button>
         </details>
         <details class="nav-group">
-          <summary><span class="nav-group-icon">设</span><span class="nav-label">System</span></summary>
-          <button class="nav-item" data-view="schedule"><span>Schedule Settings</span></button>
-          <button class="nav-item" data-view="calendar"><span>Calendar</span></button>
-          <button class="nav-item nav-accent" data-view="import"><span>Import Center</span></button>
-          <button class="nav-item" data-view="automation"><span>Automation</span></button>
-          <button class="nav-item" data-view="backup"><span>Export &amp; Backup</span></button>
-          <button class="nav-item" data-view="settings"><span>Settings</span></button>
+          <summary><svg class="nav-icon"><use href="#i-system"></use></svg><span class="nav-label">System</span></summary>
+          <button class="nav-item" data-view="schedule" data-label="Schedule" title="Schedule Settings"><svg class="nav-icon"><use href="#i-schedule"></use></svg><span>Schedule Settings</span></button>
+          <button class="nav-item" data-view="calendar" data-label="Calendar" title="Calendar"><svg class="nav-icon"><use href="#i-calendar"></use></svg><span>Calendar</span></button>
+          <button class="nav-item nav-accent" data-view="import" data-label="Import" title="Import Center"><svg class="nav-icon"><use href="#i-import"></use></svg><span>Import Center</span></button>
+          <button class="nav-item" data-view="automation" data-label="Automation" title="Automation"><svg class="nav-icon"><use href="#i-automation"></use></svg><span>Automation</span></button>
+          <button class="nav-item" data-view="backup" data-label="Backup" title="Export & Backup"><svg class="nav-icon"><use href="#i-backup"></use></svg><span>Export &amp; Backup</span></button>
+          <button class="nav-item" data-view="settings" data-label="Settings" title="Settings"><svg class="nav-icon"><use href="#i-settings"></use></svg><span>Settings</span></button>
         </details>
       </nav>
 
       <div class="sidebar-footer">
         <div class="privacy-card"><strong>Local by design</strong><span>Personal data stays in this browser and your connected Classroom Data folder.</span></div>
-        <small>Designed by: Alyssa × ChatGPT<br />Workspace Consolidation · v8</small>
+        <small>Designed by: Alyssa × ChatGPT<br />Core UX Repair · v8.1</small>
       </div>
     </aside>
 
@@ -78,7 +96,7 @@
         <div class="today-layout">
           <div class="today-left-stack">
             <article class="panel compact-panel action-center">
-              <div class="panel-heading"><div><span class="eyebrow">Action center</span><h3>Tasks &amp; reminders</h3></div><button class="text-button" data-view-link="sessions">Open agenda</button></div>
+              <div class="panel-heading"><div><span class="eyebrow">Action center</span><h3>Tasks &amp; reminders</h3></div><button class="text-button" data-view-link="tasks">Open tasks</button></div>
               <div class="tabs small-tabs" id="todayActionTabs"><button class="active" data-today-action="tasks">To-do</button><button data-today-action="reminders">Reminders</button></div>
               <div id="todayTasks" class="stack-list"></div>
               <div id="todayReminders" class="stack-list hidden"></div>
@@ -109,7 +127,7 @@
           <div class="week-nav"><button id="previousWeek" class="icon-button">←</button><div><small>Week of</small><strong id="weekRange"></strong></div><button id="thisWeek" class="button subtle">This week</button><button id="nextWeek" class="icon-button">→</button></div>
         </div>
         <div class="toolbar panel">
-          <div class="segmented" id="weekMode"><button class="active" data-mode="week">Week</button><button data-mode="workweek">Workweek</button><button data-mode="agenda">Agenda</button></div>
+          <div class="segmented" id="weekMode"><button class="active" data-mode="week">Week</button><button data-mode="workweek">Workweek</button><button data-mode="list">List</button></div>
           <label><input type="checkbox" id="showWeekends" checked /> Show weekends</label>
           <select id="weekTypeFilter"><option value="">All types</option><option>Class</option><option>Individual</option><option>Small Group</option><option>Meeting</option><option>Observation</option><option>Preparation</option><option>Reflection</option><option>Personal</option></select>
           <select id="weekSubjectFilter"><option value="">All subjects</option></select>
@@ -120,8 +138,8 @@
       </section>
 
       <section class="view" id="sessionsView">
-        <div class="page-heading split-heading"><div><span class="eyebrow">Workspace</span><h2>Agenda</h2><p>Sessions, meetings, services, tasks, and personal items in one searchable list.</p></div><button class="button primary" id="addPersonalAgenda">+ Personal item</button></div>
-        <div class="toolbar panel"><input id="sessionSearch" class="wide-input" placeholder="Search title, learner, group, teacher, subject…" /><select id="sessionPersonFilter"><option value="">All people</option></select><select id="sessionTypeFilter"><option value="">All types</option></select><input id="sessionStartDate" type="date" /><input id="sessionEndDate" type="date" /></div>
+        <div class="page-heading split-heading"><div><span class="eyebrow">Workspace</span><h2>Personal Agenda</h2><p>Private appointments, errands, deadlines, and personal events only. Your recurring school schedule remains in Week.</p></div><button class="button primary" id="addPersonalAgenda">+ Personal item</button></div>
+        <div class="toolbar panel personal-agenda-toolbar"><input id="sessionSearch" class="wide-input" placeholder="Search personal agenda…" /><select id="sessionCategoryFilter"><option value="">All categories</option></select><label><input id="sessionPinnedOnly" type="checkbox" /> Pinned only</label><input id="sessionStartDate" type="date" aria-label="Start date" /><input id="sessionEndDate" type="date" aria-label="End date" /></div>
         <div id="sessionsList" class="data-list"></div>
       </section>
 
@@ -150,7 +168,7 @@
         <div id="scheduleSettingsContent" class="data-list"></div>
       </section>
 
-      <section class="view" id="calendarView"><div class="page-heading split-heading"><div><span class="eyebrow">System</span><h2>Calendar</h2><p>School closures, testing, assemblies, services, and special dates. Calendar items sync to Today, Week, Agenda, reminders, and Students to Notice.</p></div><button class="button primary" data-add="event">+ Add event</button></div><div id="calendarContent" class="data-list"></div></section>
+      <section class="view" id="calendarView"><div class="page-heading split-heading"><div><span class="eyebrow">System</span><h2>Calendar</h2><p>School closures, testing, assemblies, services, and special dates. Calendar items sync to Today, Week, reminders, and Students to Notice. Personal Agenda stays separate.</p></div><button class="button primary" data-add="event">+ Add event</button></div><div id="calendarContent" class="data-list"></div></section>
 
       <section class="view" id="tasksView"><div class="page-heading split-heading"><div><span class="eyebrow">Workspace</span><h2>Tasks</h2><p>Preparation, communication, follow-up, and personal tasks.</p></div><button class="button primary" data-add="task">+ Add task</button></div><div id="tasksContent" class="data-list"></div></section>
       <section class="view" id="captureView"><div class="page-heading"><span class="eyebrow">Workspace</span><h2>Quick Capture</h2><p>An inbox for ideas that can become tasks, memories, resources, lessons, or personal agenda items.</p></div><div id="captureContent" class="data-list"></div></section>
@@ -161,7 +179,7 @@
         <div class="import-layout">
           <article class="panel">
             <div id="dropZone" class="drop-zone"><strong>Drop one or more files here</strong><span>XLSX/XLSM, CSV/TSV, ICS, JSON, TXT, DOCX, PPTX, PDF, PNG/JPG/HEIC</span><input id="importFile" type="file" multiple accept=".xlsx,.xlsm,.csv,.tsv,.json,.ics,.txt,.docx,.pptx,.pdf,.png,.jpg,.jpeg,.heic" /></div>
-            <label class="destination-label">Import destination<select id="importDestination"><option value="auto">Auto-detect</option><option value="schedule">Recurring Schedule</option><option value="calendar">Calendar</option><option value="playbook">Classroom Playbook</option><option value="library">Library</option><option value="learners">Learners</option><option value="plans">Learner Lesson Plans</option><option value="memory">Teaching Memory</option><option value="tasks">Tasks / Agenda</option><option value="reference">Reference document only</option></select></label>
+            <label class="destination-label">Import destination<select id="importDestination"><option value="auto">Auto-detect</option><option value="schedule">Recurring Schedule</option><option value="calendar">Calendar</option><option value="playbook">Classroom Playbook</option><option value="library">Library</option><option value="learners">Learners</option><option value="plans">Learner Lesson Plans</option><option value="memory">Teaching Memory</option><option value="tasks">Tasks</option><option value="reference">Reference document only</option></select></label>
             <div id="importQueue" class="import-queue"></div>
             <div id="importWorkbookSummary" class="hidden"></div>
           </article>
@@ -195,10 +213,12 @@
 
   <dialog id="bumpDialog" class="dialog"><form id="bumpForm" method="dialog"><div class="dialog-head"><div><span class="eyebrow">Dynamic rescheduling</span><h3>Bump lesson</h3></div><button type="button" class="icon-button" data-close-dialog>×</button></div><input type="hidden" id="bumpLessonId" /><label class="radio-card"><input type="radio" name="bumpScope" value="one" checked /><span><strong>Move this lesson only</strong><small>Place only this lesson in the next valid block.</small></span></label><label class="radio-card"><input type="radio" name="bumpScope" value="sequence" /><span><strong>Shift this and following lessons</strong><small>Move the remaining lesson sequence through future valid blocks.</small></span></label><div id="bumpPreview" class="impact-box"></div><div class="dialog-actions"><button type="button" class="button subtle" data-close-dialog>Cancel</button><button class="button primary">Confirm bump</button></div></form></dialog>
 
+  <dialog id="personalAgendaDialog" class="dialog"><form id="personalAgendaForm" method="dialog"><div class="dialog-head"><div><span class="eyebrow">Personal</span><h3 id="personalAgendaDialogTitle">Add personal agenda item</h3></div><button type="button" class="icon-button" data-close-dialog>×</button></div><input id="personalAgendaId" type="hidden" /><div class="form-grid two-col"><label class="span-2">Title<input id="personalAgendaTitle" required /></label><label>Date<input id="personalAgendaDate" type="date" required /></label><label>Category<select id="personalAgendaCategory"><option>Personal</option><option>Appointment</option><option>Deadline</option><option>Errand</option><option>Admin</option><option>Wellbeing</option></select></label><label>Start time<input id="personalAgendaTime" type="time" /></label><label>End time<input id="personalAgendaEndTime" type="time" /></label><label class="span-2">Notes<textarea id="personalAgendaNotes" rows="4"></textarea></label><label class="span-2 checkbox-label"><input id="personalAgendaPinned" type="checkbox" /> Pin this item</label></div><div class="dialog-actions"><button type="button" id="deletePersonalAgendaButton" class="button danger hidden">Delete</button><span></span><button type="button" class="button subtle" data-close-dialog>Cancel</button><button class="button primary">Save</button></div></form></dialog>
+
   <div id="toast" class="toast hidden"></div>
 
   <script src="assets/vendor/jszip.min.js"></script>
-  <script src="xlsx-import-v8.js"></script>
-  <script src="app-v8.js"></script>
+  <script src="xlsx-import-v8.1.js"></script>
+  <script src="app-v8.1.js"></script>
 </body>
 </html>

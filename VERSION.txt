@@ -1,1 +1,2 @@
-Classroom Workspace Consolidation v8
+Classroom Core UX Repair v8.1
+Build focus: navigation, Personal Agenda separation, and Import Center audit repair
