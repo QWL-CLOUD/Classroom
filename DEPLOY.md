@@ -1,9 +1,10 @@
-# Deploy Classroom v11 to GitHub Pages
+# Deploy Classroom v11.1
 
-1. Back up your current Classroom data from the existing site.
-2. Upload everything in this folder to the root of the GitHub repository.
-3. Keep GitHub Pages configured to deploy from `main` and `/(root)`.
-4. Wait for Pages to finish deploying, then hard-refresh Chrome.
-5. Do not upload personalized backups, calendars, rosters, or source spreadsheets to the public repository.
+Upload the contents of this folder to the root of the GitHub Pages repository.
+Do not clear Chrome site data. This hotfix is designed to migrate older local interface-state shapes safely.
 
-The compiled app uses relative asset paths and is ready for a project-site URL such as `https://<account>.github.io/Classroom/`.
+After GitHub Pages finishes deploying, open the site with a cache-busting query such as:
+
+`https://qwl-cloud.github.io/Classroom/?v=11.1-hotfix`
+
+Then perform a hard refresh once.
