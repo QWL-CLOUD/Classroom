@@ -1,3 +1,1 @@
-Classroom Sprint 5 Teaching Memory
-Expected navigation remains: Overview, Weekly Planner, Learners, Learner Planning, Library, Automation, Import Center, Storage & Backup.
-Teaching Memory is the third tab inside Learner Planning.
+Classroom Sprint 6 — Classroom Playbook

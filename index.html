@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Sprint 5 Teaching Memory</title>
+  <title>Classroom · Sprint 6 Classroom Playbook</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v5.css" />
+  <link rel="stylesheet" href="styles-v6.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -19,6 +19,7 @@
       <nav class="nav-list">
         <button class="nav-item active" data-view="dashboard">Overview</button>
         <button class="nav-item" data-view="calendar">Weekly planner</button>
+        <button class="nav-item nav-new" data-view="playbook"><span>Classroom Playbook</span><small>NEW</small></button>
         <button class="nav-item" data-view="learners">Learners</button>
         <button class="nav-item" data-view="learnerPlanning">Learner Planning</button>
         <button class="nav-item" data-view="library">Library</button>
@@ -32,7 +33,7 @@
         <strong>Personal data stays local.</strong>
         <p>Import schedules, learners, and teaching records into this browser. They are not written to GitHub.</p>
       </div>
-      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 5 · Teaching memory</span></p>
+      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 6 · Classroom Playbook</span></p>
     </aside>
 
     <main class="main-content">
@@ -41,7 +42,7 @@
         <div class="global-search-area" id="globalSearchArea">
           <div class="global-search-input-wrap">
             <span class="global-search-icon" aria-hidden="true">⌕</span>
-            <input id="globalSearchInput" type="search" autocomplete="off" placeholder="Search lessons, resources, learners, plans…" aria-label="Search Classroom" />
+            <input id="globalSearchInput" type="search" autocomplete="off" placeholder="Search lessons, routines, resources, learners, plans…" aria-label="Search Classroom" />
             <kbd>⌘K</kbd>
             <button class="global-search-clear hidden" id="globalSearchClear" type="button" aria-label="Clear search">×</button>
           </div>
@@ -51,6 +52,7 @@
                 <button class="search-scope-chip active" type="button" data-search-scope="all">All</button>
                 <button class="search-scope-chip" type="button" data-search-scope="lesson">Lessons</button>
                 <button class="search-scope-chip" type="button" data-search-scope="material">Library</button>
+                <button class="search-scope-chip" type="button" data-search-scope="playbook">Playbook</button>
                 <button class="search-scope-chip" type="button" data-search-scope="learner">Learners</button>
                 <button class="search-scope-chip" type="button" data-search-scope="plan">Plans</button>
                 <button class="search-scope-chip" type="button" data-search-scope="memory">Memory</button>
@@ -104,6 +106,56 @@
         <div class="week-scroll-shell">
           <div class="week-grid" id="weekGrid" aria-live="polite"></div>
         </div>
+      </section>
+
+
+      <section class="view" id="playbookView">
+        <div class="section-intro playbook-intro">
+          <div>
+            <span class="eyebrow">Reusable classroom systems</span>
+            <h3>Classroom Playbook</h3>
+            <p>Build an SOP-style library of routines for how the classroom runs. These are reusable procedures, not calendar blocks; regular whole-class scheduling stays in Weekly Planner.</p>
+          </div>
+          <div class="playbook-header-actions">
+            <button class="button button-undo" id="undoPlaybookButton" disabled>↶ Undo playbook action</button>
+            <button class="button button-secondary" id="exportPlaybookButton">Export playbook</button>
+            <button class="button button-secondary" id="downloadPlaybookTemplateButton">CSV template</button>
+            <button class="button button-primary" id="addRoutineButton">+ Add routine</button>
+          </div>
+        </div>
+
+        <div class="playbook-stat-grid">
+          <article class="library-stat"><span>Active routines</span><strong id="playbookActiveCount">0</strong></article>
+          <article class="library-stat"><span>Pinned</span><strong id="playbookPinnedCount">0</strong></article>
+          <article class="library-stat"><span>Runs this month</span><strong id="playbookMonthRunsCount">0</strong></article>
+          <article class="library-stat warning-stat"><span>Drafts to review</span><strong id="playbookDraftCount">0</strong></article>
+        </div>
+
+        <div class="playbook-boundary-banner">
+          <div><strong>Playbook ≠ daily schedule</strong><span>Use this space for repeatable routines and operating procedures. Use Weekly Planner for dated lessons and whole-class schedules.</span></div>
+          <button class="text-button" type="button" data-go-to="calendar">Open Weekly Planner</button>
+        </div>
+
+        <div class="workspace-tabs" role="tablist" aria-label="Playbook routine categories">
+          <button class="workspace-tab active" type="button" data-playbook-tab="Daily">Daily Routines</button>
+          <button class="workspace-tab" type="button" data-playbook-tab="Teaching">Teaching Routines</button>
+          <button class="workspace-tab" type="button" data-playbook-tab="Operational">Operational Routines</button>
+        </div>
+
+        <div class="panel playbook-toolbar">
+          <input id="playbookSearchInput" class="search-input" type="search" placeholder="Search routine, purpose, trigger, step, cue, material, or tag…" />
+          <select id="playbookStatusFilter" class="select-input"><option value="all">All statuses</option><option>Active</option><option>Draft</option><option>Archived</option></select>
+          <select id="playbookSort" class="select-input"><option value="pinned">Pinned first</option><option value="title">Title A–Z</option><option value="updated">Recently updated</option><option value="used">Recently run</option></select>
+          <label class="compact-check"><input type="checkbox" id="playbookPinnedOnly" /> Pinned only</label>
+          <span id="playbookResultCount" class="library-result-count">0 routines</span>
+        </div>
+
+        <div id="playbookRoutineList" class="playbook-routine-grid"></div>
+
+        <section class="panel playbook-runs-panel">
+          <div class="panel-heading"><div><span class="eyebrow">Optional practice log</span><h3>Recent routine runs</h3></div><button class="text-button" id="clearPlaybookRunsButton" type="button">Clear history</button></div>
+          <div id="playbookRecentRuns" class="playbook-run-history"></div>
+        </section>
       </section>
 
       <section class="view" id="learnersView">
@@ -346,7 +398,7 @@
             <div class="step-heading"><span>2</span><div><h3>Classify and map</h3><p>Review the automatic field matching</p></div></div>
             <div class="import-controls">
               <label class="form-field"><span>Import as</span><select id="importCategory" disabled>
-                <option value="lesson">Lessons / schedule</option><option value="calendar">School calendar</option><option value="library">Library resources</option><option value="student">Students / learners</option><option value="memory">Teaching memory</option><option value="template">Lesson templates</option>
+                <option value="lesson">Lessons / schedule</option><option value="calendar">School calendar</option><option value="library">Library resources</option><option value="playbook">Classroom Playbook routines</option><option value="student">Students / learners</option><option value="memory">Teaching memory</option><option value="template">Lesson templates</option>
               </select></label>
               <label class="form-field"><span>Import mode</span><select id="importMode" disabled><option value="add">Add new records</option><option value="merge">Merge matching records</option><option value="replace">Replace this category</option></select></label>
             </div>
@@ -528,6 +580,52 @@
   </dialog>
 
 
+
+  <dialog id="playbookRoutineDialog" class="modal modal-wide playbook-dialog">
+    <form method="dialog" id="playbookRoutineForm">
+      <div class="modal-header"><div><span class="eyebrow">Classroom Playbook</span><h3 id="playbookRoutineDialogTitle">Add routine</h3><p class="modal-subtitle">Document a reusable classroom procedure. Write one checklist step per line.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <input type="hidden" id="playbookRoutineId" />
+      <div class="form-grid playbook-form-grid">
+        <label class="form-field"><span>Routine type</span><select id="playbookRoutineCategory"><option value="Daily">Daily Routine</option><option value="Teaching">Teaching Routine</option><option value="Operational">Operational Routine</option></select></label>
+        <label class="form-field"><span>Status</span><select id="playbookRoutineStatus"><option>Active</option><option>Draft</option><option>Archived</option></select></label>
+        <label class="form-field full-width"><span>Routine title</span><input id="playbookRoutineTitle" required placeholder="Morning entry routine" /></label>
+        <label class="form-field full-width"><span>Purpose</span><textarea id="playbookRoutinePurpose" rows="2" placeholder="What problem does this routine solve, or what does it help students do consistently?"></textarea></label>
+        <label class="form-field"><span>When / trigger</span><input id="playbookRoutineWhen" placeholder="At arrival, before partner work, after an absence…" /></label>
+        <label class="form-field"><span>Frequency</span><input id="playbookRoutineFrequency" placeholder="Daily, every lesson, as needed…" /></label>
+        <label class="form-field full-width"><span>Checklist steps — one per line</span><textarea id="playbookRoutineSteps" rows="8" required placeholder="Greet students at the door\nStudents unpack materials\nStudents begin the posted warm-up"></textarea></label>
+        <label class="form-field full-width"><span>Teacher language / cues</span><textarea id="playbookRoutineCues" rows="3" placeholder="Exact prompts, signals, gestures, sentence frames, or countdown language."></textarea></label>
+        <label class="form-field full-width"><span>Materials or setup</span><textarea id="playbookRoutineMaterials" rows="3" placeholder="Physical setup or materials needed. You can also link resources below."></textarea></label>
+        <label class="form-field full-width"><span>Reset / recovery plan</span><textarea id="playbookRoutineRecovery" rows="3" placeholder="What should happen when the routine breaks down or needs reteaching?"></textarea></label>
+        <label class="form-field full-width"><span>Linked Library resources</span><select id="playbookRoutineMaterialIds" multiple size="5"></select><small class="form-help">Hold Command (Mac) or Ctrl (Windows) to select more than one.</small></label>
+        <label class="form-field full-width"><span>Tags</span><input id="playbookRoutineTags" placeholder="arrival, transitions, partner work, assessment" /></label>
+        <label class="checkbox-field full-width"><input type="checkbox" id="playbookRoutinePinned" /><span>Pin this routine near the top</span></label>
+      </div>
+      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deletePlaybookRoutineButton">Delete routine</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save routine</button></div></div>
+    </form>
+  </dialog>
+
+  <dialog id="playbookRunDialog" class="modal modal-wide playbook-run-dialog">
+    <div class="modal-header"><div><span class="eyebrow">Run checklist</span><h3 id="playbookRunTitle">Routine</h3><p id="playbookRunSubtitle" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+    <input type="hidden" id="playbookRunRoutineId" />
+    <div id="playbookRunChecklist" class="playbook-run-checklist"></div>
+    <label class="form-field full-width"><span>Run note (optional)</span><textarea id="playbookRunNotes" rows="3" placeholder="What worked, what needed prompting, or what should be adjusted next time?"></textarea></label>
+    <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Close without recording</button><div class="modal-actions-right"><button class="button button-primary" type="button" id="finishPlaybookRunButton">Finish & record</button></div></div>
+  </dialog>
+
+  <dialog id="playbookLinkLessonDialog" class="modal">
+    <div class="modal-header"><div><span class="eyebrow">Connect to planning</span><h3 id="playbookLinkLessonTitle">Add routine to a lesson</h3><p class="modal-subtitle">This links the reusable routine to a dated lesson without turning it into a schedule template.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+    <input type="hidden" id="playbookLinkRoutineId" />
+    <label class="form-field full-width"><span>Lesson</span><select id="playbookLinkLessonId"></select></label>
+    <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><div class="modal-actions-right"><button class="button button-primary" type="button" id="confirmPlaybookLinkButton">Add to lesson</button></div></div>
+  </dialog>
+
+  <dialog id="lessonPlaybookDialog" class="modal modal-wide">
+    <div class="modal-header"><div><span class="eyebrow">Linked routines</span><h3 id="lessonPlaybookTitle">Lesson playbook</h3><p id="lessonPlaybookSubtitle" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+    <input type="hidden" id="lessonPlaybookLessonId" />
+    <div id="lessonPlaybookList" class="lesson-playbook-list"></div>
+    <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Close</button></div>
+  </dialog>
+
   <dialog id="teachingMemoryDialog" class="modal modal-wide memory-dialog">
     <form method="dialog" id="teachingMemoryForm">
       <div class="modal-header"><div><span class="eyebrow">Teaching Memory</span><h3 id="teachingMemoryDialogTitle">Add teaching memory</h3><p class="modal-subtitle">Capture what you noticed, what worked, and what should happen next.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
@@ -704,12 +802,13 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button></div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app-v5-core.js"></script>
-  <script src="library-v5.js"></script>
-  <script src="storage-v5.js"></script>
-  <script src="learner-planning-v5.js"></script>
-  <script src="teaching-memory-v5.js"></script>
-  <script src="automation-v5.js"></script>
-  <script src="inline-search-v5.js"></script>
+  <script src="app-v6-core.js"></script>
+  <script src="library-v6.js"></script>
+  <script src="storage-v6.js"></script>
+  <script src="learner-planning-v6.js"></script>
+  <script src="teaching-memory-v6.js"></script>
+  <script src="automation-v6.js"></script>
+  <script src="playbook-v6.js"></script>
+  <script src="inline-search-v6.js"></script>
 </body>
 </html>
