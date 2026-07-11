@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Sprint 3 Corrected</title>
+  <title>Classroom · Sprint 4 Automation</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v3c.css" />
+  <link rel="stylesheet" href="styles-v4.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -22,6 +22,7 @@
         <button class="nav-item" data-view="learners">Learners</button>
         <button class="nav-item" data-view="learnerPlanning">Learner Planning</button>
         <button class="nav-item" data-view="library">Library</button>
+        <button class="nav-item nav-new" data-view="automation"><span>Automation</span><small>NEW</small></button>
         <button class="nav-item nav-new" data-view="import"><span>Import center</span><small>NEW</small></button>
         <button class="nav-item nav-new" data-view="storage"><span>Storage &amp; backup</span><small>LOCAL</small></button>
       </nav>
@@ -31,7 +32,7 @@
         <strong>Personal data stays local.</strong>
         <p>Import schedules, learners, and teaching records into this browser. They are not written to GitHub.</p>
       </div>
-      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 3 · Interface consolidation</span></p>
+      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 4 · Safe automation</span></p>
     </aside>
 
     <main class="main-content">
@@ -238,6 +239,60 @@
             </div>
             <div id="materialLibrary" class="material-grid enhanced-material-grid"></div>
           </div>
+        </div>
+      </section>
+
+
+      <section class="view" id="automationView">
+        <div class="section-intro automation-intro">
+          <div>
+            <span class="eyebrow">Preview before changes</span>
+            <h3>Automation</h3>
+            <p>Review schedule issues, generate recurring lessons, and apply selected actions. Automation never changes your workspace silently.</p>
+          </div>
+          <div class="learner-header-actions">
+            <button class="button button-secondary" id="undoAutomationButton" disabled>↶ Undo last automation</button>
+            <button class="button button-secondary" id="runActiveRulesButton">Run active rules</button>
+            <button class="button button-primary" id="addAutomationRuleButton">+ Recurring rule</button>
+          </div>
+        </div>
+
+        <div class="automation-safety-banner">
+          <div><strong>No background changes.</strong><span>Checks run only when you open Automation or click Refresh. Every schedule change is previewed and can be undone.</span></div>
+          <button class="text-button" id="refreshAutomationButton" type="button">Refresh review</button>
+        </div>
+
+        <div class="learner-stat-grid automation-stat-grid">
+          <article class="library-stat"><span>Active rules</span><strong id="automationActiveRuleCount">0</strong></article>
+          <article class="library-stat"><span>Schedule issues</span><strong id="automationIssueCount">0</strong></article>
+          <article class="library-stat"><span>Missing materials</span><strong id="automationMissingMaterialCount">0</strong></article>
+          <article class="library-stat"><span>Last run</span><strong id="automationLastRun">—</strong></article>
+        </div>
+
+        <div class="workspace-tabs" role="tablist" aria-label="Automation sections">
+          <button class="workspace-tab active" type="button" data-automation-tab="review">Review</button>
+          <button class="workspace-tab" type="button" data-automation-tab="rules">Recurring Rules</button>
+          <button class="workspace-tab" type="button" data-automation-tab="history">Run History</button>
+        </div>
+
+        <div id="automationReviewPanel" class="automation-tab-panel">
+          <div class="panel automation-review-toolbar">
+            <div><span class="eyebrow">Action queue</span><h3>Recommended actions</h3><p>Closure conflicts, overdue planned lessons, due learner plans, and missing materials are checked locally.</p></div>
+            <div class="automation-toolbar-actions"><button class="button button-secondary button-small" id="selectAllAutomationActions">Select actionable</button><button class="button button-primary" id="applyAutomationActionsButton" disabled>Apply selected</button></div>
+          </div>
+          <div id="automationIssueList" class="automation-issue-list"></div>
+        </div>
+
+        <div id="automationRulesPanel" class="automation-tab-panel hidden">
+          <div class="panel automation-review-toolbar">
+            <div><span class="eyebrow">Reusable schedules</span><h3>Recurring lesson rules</h3><p>Create weekly patterns and preview future lessons before they are added to Weekly Planner.</p></div>
+            <button class="button button-primary" id="addAutomationRuleButtonSecondary">+ Recurring rule</button>
+          </div>
+          <div id="automationRuleList" class="automation-rule-grid"></div>
+        </div>
+
+        <div id="automationHistoryPanel" class="automation-tab-panel hidden">
+          <div class="panel"><div class="panel-heading"><div><span class="eyebrow">Audit trail</span><h3>Automation runs</h3></div></div><div id="automationRunHistory" class="history-list"></div></div>
         </div>
       </section>
 
@@ -458,6 +513,7 @@
         <label class="form-field"><span>Start time</span><input id="lessonTime" type="time" required /></label>
         <label class="form-field"><span>Duration (minutes)</span><input id="lessonDuration" type="number" min="15" step="5" value="60" required /></label>
         <label class="form-field"><span>Lesson type</span><select id="lessonType"><option>Class</option><option value="One-on-one">Individual session</option><option>Small-group session</option><option>Planning</option></select></label>
+        <label class="form-field"><span>Status</span><select id="lessonStatus"><option>Planned</option><option>Completed</option><option>Needs follow-up</option><option>Cancelled</option></select></label>
         <label class="form-field full-width"><span>Learner or group</span><input id="lessonLearner" /></label>
         <label class="form-field full-width"><span>Learning objective</span><textarea id="lessonObjective" rows="3"></textarea></label>
         <label class="form-field full-width"><span>Notes</span><textarea id="lessonNotes" rows="3"></textarea></label>
@@ -542,6 +598,40 @@
     <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Close</button><button class="button button-primary" id="mergeAllDuplicatesButton" type="button">Merge all groups</button></div></div>
   </dialog>
 
+
+  <dialog id="automationRuleDialog" class="modal modal-wide">
+    <form method="dialog" id="automationRuleForm">
+      <div class="modal-header"><div><span class="eyebrow">Recurring schedule</span><h3 id="automationRuleDialogTitle">Add recurring rule</h3><p class="modal-subtitle">Rules generate a preview first. Nothing is added until you confirm.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <input type="hidden" id="automationRuleId" />
+      <div class="form-grid">
+        <label class="form-field full-width"><span>Rule name / lesson title</span><input id="automationRuleTitle" required /></label>
+        <label class="form-field"><span>Start date</span><input id="automationRuleStart" type="date" required /></label>
+        <label class="form-field"><span>End date</span><input id="automationRuleEnd" type="date" /></label>
+        <div class="form-field full-width"><span>Days of week</span><div class="weekday-picker" id="automationWeekdayPicker">
+          <label><input type="checkbox" value="1" checked /><span>Mon</span></label><label><input type="checkbox" value="2" /><span>Tue</span></label><label><input type="checkbox" value="3" /><span>Wed</span></label><label><input type="checkbox" value="4" /><span>Thu</span></label><label><input type="checkbox" value="5" /><span>Fri</span></label><label><input type="checkbox" value="6" /><span>Sat</span></label><label><input type="checkbox" value="0" /><span>Sun</span></label>
+        </div></div>
+        <label class="form-field"><span>Start time</span><input id="automationRuleTime" type="time" value="09:00" required /></label>
+        <label class="form-field"><span>Duration (minutes)</span><input id="automationRuleDuration" type="number" min="15" step="5" value="60" required /></label>
+        <label class="form-field"><span>Lesson type</span><select id="automationRuleType"><option>Class</option><option value="One-on-one">Individual session</option><option>Small-group session</option><option>Planning</option></select></label>
+        <label class="form-field"><span>Learner or group</span><input id="automationRuleLearner" /></label>
+        <label class="form-field full-width"><span>Learning objective</span><textarea id="automationRuleObjective" rows="3"></textarea></label>
+        <label class="form-field full-width"><span>Notes</span><textarea id="automationRuleNotes" rows="3"></textarea></label>
+        <label class="form-field full-width"><span>Material link</span><input id="automationRuleMaterialUrl" type="url" placeholder="https://…" /></label>
+        <label class="checkbox-field full-width"><input type="checkbox" id="automationRuleSkipClosures" checked /><span>Check imported school-calendar closures</span></label>
+        <label class="form-field full-width"><span>When a date is closed</span><select id="automationRuleClosureBehavior"><option value="move">Move to the next open date</option><option value="skip">Skip that occurrence</option></select></label>
+        <label class="checkbox-field full-width"><input type="checkbox" id="automationRuleActive" checked /><span>Rule is active</span></label>
+      </div>
+      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteAutomationRuleButton">Delete rule</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save rule</button></div></div>
+    </form>
+  </dialog>
+
+  <dialog id="automationPreviewDialog" class="modal modal-wide automation-preview-dialog">
+    <div class="modal-header"><div><span class="eyebrow">Automation preview</span><h3 id="automationPreviewTitle">Review generated lessons</h3><p id="automationPreviewSubtitle" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+    <div class="automation-preview-controls"><label class="form-field"><span>Generate through</span><input id="automationPreviewThrough" type="date" /></label><button class="button button-secondary" id="refreshAutomationPreviewButton" type="button">Refresh preview</button></div>
+    <div id="automationPreviewList" class="automation-preview-list"></div>
+    <div class="modal-actions"><span id="automationPreviewCount" class="modal-subtitle"></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" id="applyAutomationPreviewButton" type="button">Add lessons</button></div></div>
+  </dialog>
+
   <dialog id="bumpDialog" class="modal modal-small">
     <form method="dialog" id="bumpForm">
       <div class="modal-header"><div><span class="eyebrow">Dynamic rescheduling</span><h3>Bump this sequence</h3></div><button class="close-button" type="button" data-close-dialog>×</button></div>
@@ -558,10 +648,11 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button></div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app-v3c-core.js"></script>
-  <script src="library-v3c.js"></script>
-  <script src="storage-v3c.js"></script>
-  <script src="learner-planning-v3c.js"></script>
-  <script src="inline-search-v3c.js"></script>
+  <script src="app-v4-core.js"></script>
+  <script src="library-v4.js"></script>
+  <script src="storage-v4.js"></script>
+  <script src="learner-planning-v4.js"></script>
+  <script src="automation-v4.js"></script>
+  <script src="inline-search-v4.js"></script>
 </body>
 </html>

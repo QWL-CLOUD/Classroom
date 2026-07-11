@@ -1,3 +1,2 @@
-Classroom Sprint 3 Corrected
-Build: interface consolidation
-Expected navigation: Overview, Weekly Planner, Learners, Learner Planning, Library, Import Center, Storage & Backup
+Classroom Sprint 4 Automation
+Expected navigation: Overview, Weekly Planner, Learners, Learner Planning, Library, Automation, Import Center, Storage & Backup.

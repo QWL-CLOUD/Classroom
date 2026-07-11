@@ -1,12 +1,11 @@
 # Changelog
 
-## Sprint 3 Corrected — Interface consolidation
+## Sprint 4 — Automation
 
-- Removed the standalone Search navigation/page concept.
-- Added a persistent top-bar search field with local instant results.
-- Added Learners as a peer navigation item with Individuals and Small Groups.
-- Added Learner Planning as a peer navigation item with Individual Plans and Small-Group Plans.
-- Kept whole-class teaching in Weekly Planner.
-- Preserved Monday–Sunday view, Bump/Undo, Library, Import Center, and Storage & Backup.
-- Migrated previous one-on-one lessons into Individual Plans without deleting the scheduled lessons.
-- Retained the existing local-storage key and local-folder backup compatibility.
+- Added a safe Automation workspace.
+- Added recurring rules and preview-only generation.
+- Added calendar-closure and overdue-lesson review.
+- Added learner-plan scheduling suggestions and missing-material checks.
+- Added lesson statuses and quick Complete action.
+- Added one-step automation undo and local run history.
+- Preserved the Sprint 3 corrected navigation and inline top search.

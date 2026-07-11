@@ -1,23 +1,15 @@
-# Classroom — Sprint 3 Corrected
+# Classroom — Sprint 4 Automation
 
-This release consolidates the agreed interface instead of introducing a separate Search page. It is based on the stable Sprint 2B.1 build.
+This release builds on Sprint 3 Corrected without moving the agreed navigation or inline search.
 
-## Navigation
+## Added
 
-- Overview
-- Weekly Planner
-- Learners
-- Learner Planning
-- Library
-- Import Center
-- Storage & Backup
+- Automation review queue for school-calendar conflicts, overdue planned lessons, due learner plans, and missing materials
+- Recurring lesson rules with Monday–Sunday selection
+- Preview before any generated lessons are added
+- Closure-aware skip or move behavior
+- Lesson status: Planned, Completed, Needs follow-up, Cancelled
+- Undo for the most recent automation run
+- Local run history
 
-Whole-class teaching remains in Weekly Planner. Learners and Learner Planning are only for selected individuals and small groups.
-
-## Search
-
-Search is a text field in the top bar. It never appears as a left-navigation page. Command+K / Ctrl+K focuses the field. Results appear below the field and are generated locally from the browser workspace.
-
-## Data compatibility
-
-The app continues to use `classroomDataV1`. Existing lessons, Library records, imports, and folder connection remain compatible. Previous one-on-one lessons are preserved in Weekly Planner and also migrated into Individual Plans.
+Automation does not run in the background and never silently changes the schedule. Data remains in the browser and connected Classroom Data folder.
