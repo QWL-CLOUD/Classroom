@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Sprint 2A.3</title>
+  <title>Classroom · Sprint 2A.4</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v2a3.css" />
+  <link rel="stylesheet" href="styles-v2a4.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -69,7 +69,14 @@
           </div>
           <div class="planner-note">Monday–Sunday · Bump changes can be undone.</div>
         </div>
-        <div class="week-grid" id="weekGrid" aria-live="polite"></div>
+        <div class="week-scroll-controls" id="weekScrollControls" aria-label="Move through the week">
+          <button class="button button-secondary button-small" id="showMondayButton">← Show Monday</button>
+          <span>Scroll sideways to view all seven days.</span>
+          <button class="button button-secondary button-small" id="showSundayButton">Show Sunday →</button>
+        </div>
+        <div class="week-scroll-shell">
+          <div class="week-grid" id="weekGrid" aria-live="polite"></div>
+        </div>
       </section>
 
       <section class="view" id="sessionsView">
@@ -182,6 +189,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button></div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app-v2a3.js"></script>
+  <script src="app-v2a4.js"></script>
 </body>
 </html>

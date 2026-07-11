@@ -1,2 +1,2 @@
-Classroom Sprint 2A.3 corrected build
-Expected sidebar: Overview, Weekly planner, One-on-one sessions, Library, Import center
+Classroom Sprint 2A.4
+Fix: Monday and Tuesday are always reachable and the week opens at Monday.
