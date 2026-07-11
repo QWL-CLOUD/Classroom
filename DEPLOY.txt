@@ -1,0 +1,8 @@
+Classroom v10 — GitHub Pages direct deployment
+
+1. Upload the CONTENTS of this folder to the root of your GitHub repository.
+2. In Settings > Pages, choose Deploy from a branch, main, /(root).
+3. Wait for deployment, then refresh the site.
+4. Do not clear browser site data unless you have exported a backup.
+
+This compiled package contains empty public defaults. Personalized data remains local.
