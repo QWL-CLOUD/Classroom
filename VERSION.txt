@@ -1,1 +1,9 @@
-Classroom v8.2 — Today Schedule Visibility Fix
+Classroom Linked Workspace v9.0
+Build date: 2026-07-11
+
+Core flow:
+Today Schedule -> Edit Daily Schedule / Open Daily Planning
+Today To-do <-> Tasks
+Today Reminders <-> Classroom Calendar -> Google Calendar handoff
+Learner list -> Learner Record -> Profile / Lesson Plans / Planning Sessions / Teaching Memory / Services
+Week -> card-based Monday-Sunday planning view

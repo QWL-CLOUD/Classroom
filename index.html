@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Today Schedule Fix v8.1</title>
+  <title>Classroom · Linked Workspace v9</title>
   <link rel="icon" href="assets/favicon-c.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v8.2.css" />
+  <link rel="stylesheet" href="styles-v9.css" />
 </head>
 <body>
   <svg class="icon-sprite" aria-hidden="true" focusable="false">
@@ -67,9 +67,10 @@
 
       <div class="sidebar-footer">
         <div class="privacy-card"><strong>Local by design</strong><span>Personal data stays in this browser and your connected Classroom Data folder.</span></div>
-        <small>Designed by: Alyssa × ChatGPT<br />Core UX Repair · v8.1</small>
+        <small>Designed by: Alyssa × ChatGPT<br />Linked Workspace · v9</small>
       </div>
     </aside>
+    <button id="sidebarExpandRail" class="sidebar-expand-rail" type="button" aria-label="Expand navigation" title="Expand navigation">›</button>
 
     <main class="main-content">
       <header class="topbar">
@@ -95,12 +96,15 @@
 
         <div class="today-layout">
           <div class="today-left-stack">
-            <article class="panel compact-panel action-center">
-              <div class="panel-heading"><div><span class="eyebrow">Action center</span><h3>Tasks &amp; reminders</h3></div><button class="text-button" data-view-link="tasks">Open tasks</button></div>
-              <div class="tabs small-tabs" id="todayActionTabs"><button class="active" data-today-action="tasks">To-do</button><button data-today-action="reminders">Reminders</button></div>
+            <article class="panel compact-panel">
+              <div class="panel-heading"><div><span class="eyebrow">Tasks</span><h3>To-do</h3></div><button class="text-button" data-view-link="tasks">Open tasks</button></div>
               <div id="todayTasks" class="stack-list"></div>
-              <div id="todayReminders" class="stack-list hidden"></div>
               <form id="inlineTaskForm" class="inline-form"><input id="inlineTaskInput" placeholder="Add a to-do…" /><button aria-label="Add task">+</button></form>
+            </article>
+
+            <article class="panel compact-panel">
+              <div class="panel-heading"><div><span class="eyebrow">Calendar</span><h3>Reminders</h3></div><div class="header-link-group"><button class="text-button" data-view-link="calendar">Open calendar</button><button class="text-button" id="todayGoogleCalendar">Google Calendar ↗</button></div></div>
+              <div id="todayReminders" class="stack-list"></div>
             </article>
 
             <article class="panel compact-panel">
@@ -116,12 +120,47 @@
 
           <article class="panel today-schedule-panel">
             <div class="panel-heading schedule-heading">
-              <div><span class="eyebrow">Live day</span><h3>Today schedule</h3><p id="todayScheduleDateLabel" class="schedule-date-label"></p></div>
-              <div class="schedule-heading-actions"><button id="todayBackButton" class="button subtle compact hidden" type="button">Back to today</button><div class="legend-inline"><span class="past-dot"></span>Past <span class="now-dot-legend"></span>Now <span class="future-dot"></span>Upcoming</div></div>
+              <div><span class="eyebrow">Today schedule</span><h3 id="todayScheduleDateLabel">Today</h3></div>
+              <div class="schedule-heading-actions">
+                <button id="todayBackButton" class="button subtle compact hidden" type="button">Back to today</button>
+                <button id="editTodaySchedule" class="button subtle compact" type="button">Edit schedule</button>
+                <button id="openDailyPlanning" class="button primary compact" type="button">Open daily planning</button>
+              </div>
             </div>
+            <div class="legend-inline timeline-legend"><span class="past-dot"></span>Past <span class="now-dot-legend"></span>Now <span class="future-dot"></span>Upcoming</div>
             <div id="todayTimeline" class="today-timeline"></div>
           </article>
         </div>
+      </section>
+
+      <section class="view" id="dayScheduleView">
+        <div class="page-heading split-heading">
+          <div><span class="eyebrow">Schedule editor</span><h2>Daily schedule</h2><p>Edit events, date overrides, and the recurring schedule for one selected day.</p></div>
+          <div class="page-date-actions"><input id="dayScheduleDate" type="date" /><button class="button subtle" data-view-link="today">Back to Today</button></div>
+        </div>
+        <div class="day-schedule-grid">
+          <article class="panel">
+            <div class="panel-heading"><div><span class="eyebrow">Calendar</span><h3 id="dayScheduleEventsTitle">Events</h3></div><button id="addDayEvent" class="button primary compact">+ Add event</button></div>
+            <div id="dayScheduleEvents" class="data-list"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-heading"><div><span class="eyebrow">Schedule mode</span><h3>Default or override</h3></div></div>
+            <div class="schedule-mode-cards"><div><strong>Default Schedule</strong><span id="dayDefaultSummary">Used for normal days.</span></div><div><strong>Date Override</strong><span id="dayOverrideSummary">No changes for this date.</span></div></div>
+            <button id="editDateSchedule" class="button primary">Edit schedule for this date</button>
+          </article>
+        </div>
+        <article class="panel">
+          <div class="panel-heading"><div><span class="eyebrow">Recurring structure</span><h3 id="dayDefaultScheduleTitle">Default Schedule</h3></div><button id="addBlockForDay" class="button subtle compact">+ Add block</button></div>
+          <div id="dayScheduleBlocks" class="data-list"></div>
+        </article>
+      </section>
+
+      <section class="view" id="dailyPlanningView">
+        <div class="page-heading split-heading">
+          <div><span class="eyebrow">Whole-day preparation</span><h2>Daily Planning</h2><p>Choose standards, build learning targets, and plan each teachable schedule block.</p></div>
+          <div class="page-date-actions"><input id="dailyPlanningDate" type="date" /><button class="button subtle" data-view-link="today">Back to Today</button></div>
+        </div>
+        <div id="dailyPlanningGrid" class="daily-planning-grid"></div>
       </section>
 
       <section class="view" id="weekView">
@@ -152,6 +191,17 @@
         <div id="learnersContent" class="card-grid"></div>
       </section>
 
+      <section class="view" id="learnerRecordView">
+        <div class="page-heading split-heading">
+          <div><span class="eyebrow" id="learnerRecordEyebrow">Learner record</span><h2 id="learnerRecordName">Learner</h2><p id="learnerRecordSummary">One long-term record with lesson plans and planning sessions over time.</p></div>
+          <div class="button-row"><button id="backToLearners" class="button subtle">← Learners</button><button id="editLearnerRecord" class="button primary">Edit profile</button></div>
+        </div>
+        <div class="tabs learner-record-tabs" id="learnerRecordTabs">
+          <button class="active" data-record-tab="overview">Overview</button><button data-record-tab="profile">Profile</button><button data-record-tab="plans">Lesson Plans</button><button data-record-tab="sessions">Planning Sessions</button><button data-record-tab="memory">Teaching Memory</button><button data-record-tab="services">Services</button>
+        </div>
+        <div id="learnerRecordContent"></div>
+      </section>
+
       <section class="view" id="learnerPlanningView">
         <div class="page-heading split-heading"><div><span class="eyebrow">Learners</span><h2>Learner Lesson Plans</h2><p>Each individual or small group has its own lesson-plan sequence, sessions, memory, and services.</p></div><button class="button primary" data-add="plan">+ Add lesson plan</button></div>
         <div class="toolbar panel"><select id="planOwnerFilter"><option value="">All learners &amp; groups</option></select><input id="planSearch" class="wide-input" placeholder="Search lesson plans, goals, objectives…" /></div>
@@ -171,7 +221,7 @@
         <div id="scheduleSettingsContent" class="data-list"></div>
       </section>
 
-      <section class="view" id="calendarView"><div class="page-heading split-heading"><div><span class="eyebrow">System</span><h2>Calendar</h2><p>School closures, testing, assemblies, services, and special dates. Calendar items sync to Today, Week, reminders, and Students to Notice. Personal Agenda stays separate.</p></div><button class="button primary" data-add="event">+ Add event</button></div><div id="calendarContent" class="data-list"></div></section>
+      <section class="view" id="calendarView"><div class="page-heading split-heading"><div><span class="eyebrow">System</span><h2>Calendar</h2><p>School closures, testing, assemblies, services, and special dates. Calendar items sync to Today, reminders, and Students to Notice.</p></div><div class="button-row"><button id="openGoogleCalendar" class="button subtle">Open Google Calendar ↗</button><button class="button primary" data-add="event">+ Add event</button></div></div><div id="calendarContent" class="data-list"></div></section>
 
       <section class="view" id="tasksView"><div class="page-heading split-heading"><div><span class="eyebrow">Workspace</span><h2>Tasks</h2><p>Preparation, communication, follow-up, and personal tasks.</p></div><button class="button primary" data-add="task">+ Add task</button></div><div id="tasksContent" class="data-list"></div></section>
       <section class="view" id="captureView"><div class="page-heading"><span class="eyebrow">Workspace</span><h2>Quick Capture</h2><p>An inbox for ideas that can become tasks, memories, resources, lessons, or personal agenda items.</p></div><div id="captureContent" class="data-list"></div></section>
@@ -221,7 +271,8 @@
   <div id="toast" class="toast hidden"></div>
 
   <script src="assets/vendor/jszip.min.js"></script>
-  <script src="xlsx-import-v8.2.js"></script>
-  <script src="app-v8.2.js"></script>
+  <script src="xlsx-import-v9.js"></script>
+  <script src="app-v8.2-base.js"></script>
+  <script src="workspace-v9.js"></script>
 </body>
 </html>
