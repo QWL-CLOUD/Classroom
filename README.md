@@ -1,20 +1,38 @@
-# Classroom — Sprint 6 Classroom Playbook
+# Classroom · Schedule Studio v7
 
-A privacy-first, browser-based teaching workspace. Sprint 6 adds an SOP-style Classroom Playbook while preserving the established Weekly Planner, Learners, Learner Planning, Library, Automation, Import Center, Storage & Backup, and inline top search.
+A privacy-first teaching workspace designed for GitHub Pages. Public code contains only the application; personalized schedules, learners, lessons, and teaching records stay in the browser and the user's connected Classroom Data folder.
 
-## New in Sprint 6
+## What changed
 
-- Classroom Playbook with Daily Routines, Teaching Routines, and Operational Routines
-- Reusable step-by-step routine templates; routines are explicitly separate from dated schedules
-- Add, edit, duplicate, archive, pin, search, filter, and export routines
-- Optional run checklist and local run history
-- Link routines to dated lessons without converting routines into schedule templates
-- Link Library resources to routines
-- Import Playbook routines through Import Center (Excel, CSV, or JSON)
-- Playbook results in the existing top search box
-- Undo the last Playbook action
-- All Playbook data remains in the browser and connected Classroom Data folder
+- Redesigned navigation: Today, Week, Sessions, Planning, Resources, and System.
+- Operational Today dashboard with To-do, Reminders, Students to Notice, Quick Capture, and a live vertical schedule timeline.
+- Four low-saturation palettes inspired by traditional Chinese colors: Qingdai, Bamboo Moon, Peach Bloom, and Clear Sky.
+- Monday–Sunday Week timeline with weekend visibility, filters, current-time line, and nested schedule blocks.
+- Sessions is a searchable list view of the same records shown in Week.
+- Visual XLSX schedule importer reads every time range inside weekday cells, including nested Part, Transition, Review, Reflection, and Strong Close segments.
+- Recurring schedule defaults and date-specific exceptions are stored separately.
+- Schedule edits support This occurrence only, This and future occurrences, and Entire default schedule.
+- Schedule-aware Bump moves lessons through the next valid recurring block instead of simply adding a day.
+- Import history supports deleting imported data separately from removing history. Original source files remain on the user's device.
 
-## Deploy
+## Main files
 
-Upload every file in this folder to the root of the GitHub repository. GitHub Pages should deploy from the `main` branch and `/(root)`.
+- `index.html`
+- `styles-v7.css`
+- `app-v7.js`
+- `xlsx-import-v7.js`
+- `assets/vendor/jszip.min.js`
+
+## Upload
+
+Upload all files and the entire `assets` folder to the root of the GitHub repository. Do not upload the ZIP itself.
+
+Recommended commit message:
+
+`Add Schedule Studio v7`
+
+Then open:
+
+`https://qwl-cloud.github.io/Classroom/?v=7-schedule-studio`
+
+Do not clear browser site data. The application continues to use the existing `classroomDataV1` local workspace key and normalizes earlier data into the v7 structure.

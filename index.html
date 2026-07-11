@@ -1,814 +1,232 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="qingdai">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Sprint 6 Classroom Playbook</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Classroom — a privacy-first teaching workspace with local schedule import." />
+  <title>Classroom · Schedule Studio</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v6.css" />
+  <link rel="stylesheet" href="styles-v7.css" />
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar" aria-label="Main navigation">
+    <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark" aria-hidden="true">C</div>
+        <div class="brand-mark">课</div>
         <div><h1>Classroom</h1><p>Teaching workspace</p></div>
       </div>
 
-      <nav class="nav-list">
-        <button class="nav-item active" data-view="dashboard">Overview</button>
-        <button class="nav-item" data-view="calendar">Weekly planner</button>
-        <button class="nav-item nav-new" data-view="playbook"><span>Classroom Playbook</span><small>NEW</small></button>
-        <button class="nav-item" data-view="learners">Learners</button>
-        <button class="nav-item" data-view="learnerPlanning">Learner Planning</button>
-        <button class="nav-item" data-view="library">Library</button>
-        <button class="nav-item" data-view="automation">Automation</button>
-        <button class="nav-item nav-new" data-view="import"><span>Import center</span><small>NEW</small></button>
-        <button class="nav-item nav-new" data-view="storage"><span>Storage &amp; backup</span><small>LOCAL</small></button>
+      <nav id="mainNav" class="nav-groups" aria-label="Main navigation">
+        <section class="nav-group">
+          <p>Workspace</p>
+          <button class="nav-item active" data-view="today">Today</button>
+          <button class="nav-item" data-view="week">Week</button>
+          <button class="nav-item" data-view="sessions">Sessions</button>
+        </section>
+        <section class="nav-group">
+          <p>Planning</p>
+          <button class="nav-item" data-view="learners">Learners</button>
+          <button class="nav-item" data-view="learnerPlanning">Learner Planning</button>
+          <button class="nav-item" data-view="memory">Teaching Memory</button>
+        </section>
+        <section class="nav-group">
+          <p>Resources</p>
+          <button class="nav-item" data-view="library">Library</button>
+          <button class="nav-item" data-view="playbook">Classroom Playbook</button>
+        </section>
+        <section class="nav-group">
+          <p>System</p>
+          <button class="nav-item" data-view="schedule">Schedule Settings</button>
+          <button class="nav-item" data-view="calendar">Calendar</button>
+          <button class="nav-item" data-view="tasks">Tasks</button>
+          <button class="nav-item" data-view="capture">Quick Capture</button>
+          <button class="nav-item" data-view="automation">Automation</button>
+          <button class="nav-item nav-accent" data-view="import">Import Center</button>
+          <button class="nav-item" data-view="backup">Export &amp; Backup</button>
+          <button class="nav-item" data-view="settings">Settings</button>
+        </section>
       </nav>
 
-      <div class="sidebar-card">
-        <span class="eyebrow">Privacy first</span>
-        <strong>Personal data stays local.</strong>
-        <p>Import schedules, learners, and teaching records into this browser. They are not written to GitHub.</p>
+      <div class="sidebar-footer">
+        <div class="privacy-card"><strong>Local by design</strong><span>Personal schedules and records stay in this browser and your connected folder.</span></div>
+        <small>Designed by: Alyssa × ChatGPT<br />Schedule Studio · v7</small>
       </div>
-      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 6 · Classroom Playbook</span></p>
     </aside>
 
     <main class="main-content">
       <header class="topbar">
-        <div class="topbar-title"><p class="eyebrow" id="viewEyebrow">Workspace</p><h2 id="viewTitle">Teaching overview</h2></div>
-        <div class="global-search-area" id="globalSearchArea">
-          <div class="global-search-input-wrap">
-            <span class="global-search-icon" aria-hidden="true">⌕</span>
-            <input id="globalSearchInput" type="search" autocomplete="off" placeholder="Search lessons, routines, resources, learners, plans…" aria-label="Search Classroom" />
-            <kbd>⌘K</kbd>
-            <button class="global-search-clear hidden" id="globalSearchClear" type="button" aria-label="Clear search">×</button>
-          </div>
-          <div class="global-search-panel hidden" id="globalSearchPanel" role="dialog" aria-label="Search results">
-            <div class="global-search-panel-head">
-              <div class="search-scope-chips" id="globalSearchScopes">
-                <button class="search-scope-chip active" type="button" data-search-scope="all">All</button>
-                <button class="search-scope-chip" type="button" data-search-scope="lesson">Lessons</button>
-                <button class="search-scope-chip" type="button" data-search-scope="material">Library</button>
-                <button class="search-scope-chip" type="button" data-search-scope="playbook">Playbook</button>
-                <button class="search-scope-chip" type="button" data-search-scope="learner">Learners</button>
-                <button class="search-scope-chip" type="button" data-search-scope="plan">Plans</button>
-                <button class="search-scope-chip" type="button" data-search-scope="memory">Memory</button>
-              </div>
-              <span id="globalSearchSummary">Type to search this local workspace.</span>
-            </div>
-            <div class="global-search-results" id="globalSearchResults"></div>
-            <div class="global-search-help"><span>Search stays in this browser.</span><span><kbd>↑</kbd><kbd>↓</kbd> move · <kbd>Enter</kbd> open · <kbd>Esc</kbd> close</span></div>
-          </div>
+        <div class="mobile-brand">Classroom</div>
+        <div class="search-wrap">
+          <span aria-hidden="true">⌕</span>
+          <input id="globalSearch" type="search" placeholder="Search sessions, learners, resources, plans…" />
+          <kbd>⌘K</kbd>
+          <div id="searchResults" class="search-results hidden"></div>
         </div>
         <div class="topbar-actions">
-          <button class="folder-status-pill" id="folderStatusPill" data-go-to="storage" type="button"><span class="folder-status-dot"></span><span id="folderStatusPillText">Browser only</span></button>
-          <button class="button button-secondary" id="exportButton">Export backup</button>
-          <button class="button button-primary" id="addLessonButton">+ Add lesson</button>
+          <button id="themeQuickButton" class="icon-button" title="Change color palette">◐</button>
+          <button id="folderStatusButton" class="status-pill" data-view-link="backup"><span></span><b>Browser only</b></button>
+          <button id="quickAddButton" class="button primary">+ Quick add</button>
         </div>
       </header>
 
-      <section class="view active" id="dashboardView">
-        <div class="hero-card">
-          <div><span class="eyebrow">Local workspace</span><h3 id="todayHeading">Your teaching day</h3><p id="todaySummary">Loading your plan…</p></div>
-          <div class="hero-actions"><button class="button button-light" data-go-to="calendar">Open weekly planner</button><button class="button button-light" data-go-to="import">Import personalized data</button></div>
+      <section class="view active" id="todayView">
+        <div class="page-heading today-heading">
+          <div><span class="eyebrow">Workspace</span><h2 id="greeting">Good morning, Alyssa.</h2><p id="todayMeta"></p></div>
+          <div class="next-summary" id="nextSummary"></div>
         </div>
-        <div class="stats-grid">
-          <article class="stat-card"><span>This week</span><strong id="weekLessonCount">0</strong><p>planned lessons</p></article>
-          <article class="stat-card"><span>Learner Planning</span><strong id="learnerPlanCount">0</strong><p>active individual and group plans</p></article>
-          <article class="stat-card"><span>Library</span><strong id="materialCount">0</strong><p>saved resources</p></article>
-          <article class="stat-card"><span>Imports</span><strong id="importCount">0</strong><p>local import batches</p></article>
-        </div>
-        <div class="two-column-grid">
-          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Next up</span><h3>Upcoming lessons</h3></div><button class="text-button" data-go-to="calendar">View all</button></div><div id="upcomingList" class="card-list"></div></section>
-          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Quick access</span><h3>Recently used resources</h3></div><button class="text-button" data-go-to="library">Open library</button></div><div id="recentMaterials" class="resource-list"></div></section>
+
+        <div class="today-layout">
+          <div class="today-left-stack">
+            <article class="panel compact-panel">
+              <div class="panel-heading"><div><span class="eyebrow">Focus</span><h3>To-do</h3></div><button class="text-button" data-view-link="tasks">View all</button></div>
+              <div id="todayTasks" class="stack-list"></div>
+              <form id="inlineTaskForm" class="inline-form"><input id="inlineTaskInput" placeholder="Add a to-do…" /><button>+</button></form>
+            </article>
+
+            <article class="panel compact-panel">
+              <div class="panel-heading"><div><span class="eyebrow">Heads-up</span><h3>Reminders</h3></div></div>
+              <div id="todayReminders" class="stack-list"></div>
+            </article>
+
+            <article class="panel compact-panel">
+              <div class="panel-heading"><div><span class="eyebrow">Follow-up</span><h3>Students to notice</h3></div><button class="text-button" data-view-link="memory">Open memory</button></div>
+              <div id="studentsToNotice" class="stack-list"></div>
+            </article>
+
+            <article class="panel compact-panel capture-panel">
+              <div class="panel-heading"><div><span class="eyebrow">Inbox</span><h3>Quick capture</h3></div></div>
+              <form id="quickCaptureForm"><textarea id="quickCaptureText" rows="3" placeholder="Capture an idea, observation, reminder, or resource…"></textarea><div><select id="quickCaptureType"><option>Note</option><option>Task</option><option>Observation</option><option>Resource</option><option>Schedule change</option></select><button class="button primary">Save</button></div></form>
+            </article>
+          </div>
+
+          <article class="panel today-schedule-panel">
+            <div class="panel-heading schedule-heading"><div><span class="eyebrow">Live day</span><h3>Today schedule</h3></div><div class="legend-inline"><span class="past-dot"></span>Past <span class="now-dot-legend"></span>Now <span class="future-dot"></span>Upcoming</div></div>
+            <div id="todayTimeline" class="today-timeline"></div>
+          </article>
         </div>
       </section>
 
-      <section class="view" id="calendarView">
-        <div class="planner-toolbar">
-          <div class="week-controls">
-            <button class="icon-button" id="previousWeek" aria-label="Previous week">←</button>
-            <div><span class="eyebrow">Week of</span><h3 id="weekRange"></h3></div>
-            <button class="icon-button" id="nextWeek" aria-label="Next week">→</button>
-            <button class="button button-secondary button-small" id="todayButton">Today</button>
-            <button class="button button-undo button-small" id="undoBumpButton" disabled>↶ Undo last bump</button>
-          </div>
-          <div class="planner-note">Monday–Sunday · Bump changes can be undone.</div>
+      <section class="view" id="weekView">
+        <div class="page-heading split-heading">
+          <div><span class="eyebrow">Workspace</span><h2>Week</h2><p>Monday–Sunday with schedule-aware lesson planning.</p></div>
+          <div class="week-nav"><button id="previousWeek" class="icon-button">←</button><div><small>Week of</small><strong id="weekRange"></strong></div><button id="thisWeek" class="button subtle">This week</button><button id="nextWeek" class="icon-button">→</button></div>
         </div>
-        <div class="week-scroll-controls" id="weekScrollControls" aria-label="Move through the week">
-          <button class="button button-secondary button-small" id="showMondayButton">← Show Monday</button>
-          <span>Scroll sideways to view all seven days.</span>
-          <button class="button button-secondary button-small" id="showSundayButton">Show Sunday →</button>
+        <div class="toolbar panel">
+          <div class="segmented" id="weekMode"><button class="active" data-mode="week">Week</button><button data-mode="workweek">Workweek</button><button data-mode="agenda">Agenda</button></div>
+          <label><input type="checkbox" id="showWeekends" checked /> Show weekends</label>
+          <select id="weekTypeFilter"><option value="">All types</option><option>Class</option><option>Individual</option><option>Small Group</option><option>Meeting</option><option>Observation</option><option>Preparation</option><option>Reflection</option></select>
+          <select id="weekSubjectFilter"><option value="">All subjects</option></select>
+          <button id="undoScheduleButton" class="button subtle" disabled>↶ Undo schedule edit</button>
+          <button id="undoBumpButton" class="button subtle" disabled>↶ Undo bump</button>
         </div>
-        <div class="week-scroll-shell">
-          <div class="week-grid" id="weekGrid" aria-live="polite"></div>
-        </div>
+        <div id="weekCalendar" class="week-calendar"></div>
       </section>
 
-
-      <section class="view" id="playbookView">
-        <div class="section-intro playbook-intro">
-          <div>
-            <span class="eyebrow">Reusable classroom systems</span>
-            <h3>Classroom Playbook</h3>
-            <p>Build an SOP-style library of routines for how the classroom runs. These are reusable procedures, not calendar blocks; regular whole-class scheduling stays in Weekly Planner.</p>
-          </div>
-          <div class="playbook-header-actions">
-            <button class="button button-undo" id="undoPlaybookButton" disabled>↶ Undo playbook action</button>
-            <button class="button button-secondary" id="exportPlaybookButton">Export playbook</button>
-            <button class="button button-secondary" id="downloadPlaybookTemplateButton">CSV template</button>
-            <button class="button button-primary" id="addRoutineButton">+ Add routine</button>
-          </div>
-        </div>
-
-        <div class="playbook-stat-grid">
-          <article class="library-stat"><span>Active routines</span><strong id="playbookActiveCount">0</strong></article>
-          <article class="library-stat"><span>Pinned</span><strong id="playbookPinnedCount">0</strong></article>
-          <article class="library-stat"><span>Runs this month</span><strong id="playbookMonthRunsCount">0</strong></article>
-          <article class="library-stat warning-stat"><span>Drafts to review</span><strong id="playbookDraftCount">0</strong></article>
-        </div>
-
-        <div class="playbook-boundary-banner">
-          <div><strong>Playbook ≠ daily schedule</strong><span>Use this space for repeatable routines and operating procedures. Use Weekly Planner for dated lessons and whole-class schedules.</span></div>
-          <button class="text-button" type="button" data-go-to="calendar">Open Weekly Planner</button>
-        </div>
-
-        <div class="workspace-tabs" role="tablist" aria-label="Playbook routine categories">
-          <button class="workspace-tab active" type="button" data-playbook-tab="Daily">Daily Routines</button>
-          <button class="workspace-tab" type="button" data-playbook-tab="Teaching">Teaching Routines</button>
-          <button class="workspace-tab" type="button" data-playbook-tab="Operational">Operational Routines</button>
-        </div>
-
-        <div class="panel playbook-toolbar">
-          <input id="playbookSearchInput" class="search-input" type="search" placeholder="Search routine, purpose, trigger, step, cue, material, or tag…" />
-          <select id="playbookStatusFilter" class="select-input"><option value="all">All statuses</option><option>Active</option><option>Draft</option><option>Archived</option></select>
-          <select id="playbookSort" class="select-input"><option value="pinned">Pinned first</option><option value="title">Title A–Z</option><option value="updated">Recently updated</option><option value="used">Recently run</option></select>
-          <label class="compact-check"><input type="checkbox" id="playbookPinnedOnly" /> Pinned only</label>
-          <span id="playbookResultCount" class="library-result-count">0 routines</span>
-        </div>
-
-        <div id="playbookRoutineList" class="playbook-routine-grid"></div>
-
-        <section class="panel playbook-runs-panel">
-          <div class="panel-heading"><div><span class="eyebrow">Optional practice log</span><h3>Recent routine runs</h3></div><button class="text-button" id="clearPlaybookRunsButton" type="button">Clear history</button></div>
-          <div id="playbookRecentRuns" class="playbook-run-history"></div>
-        </section>
+      <section class="view" id="sessionsView">
+        <div class="page-heading"><span class="eyebrow">Workspace</span><h2>Sessions</h2><p>The searchable list view of the same entries shown in Week.</p></div>
+        <div class="toolbar panel"><input id="sessionSearch" class="wide-input" placeholder="Search title, learner, group, teacher, subject…" /><select id="sessionPersonFilter"><option value="">All people</option></select><select id="sessionTypeFilter"><option value="">All types</option></select><input id="sessionStartDate" type="date" /><input id="sessionEndDate" type="date" /></div>
+        <div id="sessionsList" class="data-list"></div>
       </section>
 
       <section class="view" id="learnersView">
-        <div class="section-intro learner-intro">
-          <div>
-            <span class="eyebrow">Individuals and small groups</span>
-            <h3>Learners</h3>
-            <p>Keep a focused directory for the people and small groups who need additional planning. Regular whole-class teaching stays in Weekly Planner.</p>
-          </div>
-          <div class="learner-header-actions">
-            <button class="button button-secondary" id="addSmallGroupButton">+ Small group</button>
-            <button class="button button-primary" id="addIndividualButton">+ Individual</button>
-          </div>
-        </div>
-
-        <div class="learner-stat-grid">
-          <article class="library-stat"><span>Individuals</span><strong id="individualCount">0</strong></article>
-          <article class="library-stat"><span>Small groups</span><strong id="smallGroupCount">0</strong></article>
-          <article class="library-stat"><span>Active plans</span><strong id="activePlanCount">0</strong></article>
-          <article class="library-stat"><span>Teaching memories</span><strong id="learnerMemoryCount">0</strong></article>
-        </div>
-
-        <div class="workspace-tabs" role="tablist" aria-label="Learner types">
-          <button class="workspace-tab active" id="individualsTab" type="button" data-learner-tab="individuals">Individuals</button>
-          <button class="workspace-tab" id="smallGroupsTab" type="button" data-learner-tab="groups">Small Groups</button>
-        </div>
-
-        <div class="panel learner-toolbar">
-          <input id="learnerSearchInput" class="search-input" type="search" placeholder="Search name, grade, goals, focus, or notes…" />
-          <span id="learnerResultCount" class="library-result-count">0 records</span>
-        </div>
-        <div id="learnerWorkspaceList" class="learner-card-grid"></div>
+        <div class="page-heading split-heading"><div><span class="eyebrow">Planning</span><h2>Learners</h2><p>Individuals and small groups that need focused tracking.</p></div><button class="button primary" data-add="learner">+ Add learner</button></div>
+        <div class="tabs"><button class="active" data-learner-tab="individuals">Individuals</button><button data-learner-tab="groups">Small Groups</button></div>
+        <div id="learnersContent" class="card-grid"></div>
       </section>
 
       <section class="view" id="learnerPlanningView">
-        <div class="section-intro learner-intro">
-          <div>
-            <span class="eyebrow">Focused support</span>
-            <h3>Learner Planning</h3>
-            <p>Create longer-term plans for selected individuals and small groups. These plans are separate from the regular whole-class weekly schedule.</p>
-          </div>
-          <div class="learner-header-actions">
-            <button class="button button-secondary" id="addTeachingMemoryButton">+ Teaching memory</button>
-            <button class="button button-secondary" id="addGroupPlanButton">+ Small-group plan</button>
-            <button class="button button-primary" id="addIndividualPlanButton">+ Individual plan</button>
-          </div>
-        </div>
+        <div class="page-heading split-heading"><div><span class="eyebrow">Planning</span><h2>Learner Planning</h2><p>Individual plans and small-group plans.</p></div><button class="button primary" data-add="plan">+ Add plan</button></div>
+        <div id="plansContent" class="card-grid"></div>
+      </section>
 
-        <div class="legacy-migration-banner hidden" id="legacyMigrationBanner">
-          <div><strong>Previous one-on-one sessions were preserved.</strong><span>They now appear as individual plans and remain on the Weekly Planner.</span></div>
-          <button class="text-button" id="dismissMigrationBanner" type="button">Dismiss</button>
-        </div>
-
-        <div class="workspace-tabs" role="tablist" aria-label="Learner plan types">
-          <button class="workspace-tab active" type="button" data-plan-tab="individual">Individual Plans</button>
-          <button class="workspace-tab" type="button" data-plan-tab="group">Small-Group Plans</button>
-          <button class="workspace-tab" type="button" data-plan-tab="memory">Teaching Memory</button>
-        </div>
-
-        <div id="learnerPlansPanel">
-          <div class="panel plan-toolbar">
-            <input id="planSearchInput" class="search-input" type="search" placeholder="Search target, goal, focus, tags, or notes…" />
-            <select id="planStatusFilter" class="select-input"><option value="all">All statuses</option><option>Active</option><option>Paused</option><option>Completed</option></select>
-            <span id="planResultCount" class="library-result-count">0 plans</span>
-          </div>
-          <div id="learnerPlanList" class="learner-plan-grid"></div>
-        </div>
-
-        <div id="teachingMemoryPanel" class="hidden">
-          <div class="memory-summary-grid">
-            <article class="library-stat"><span>Total memories</span><strong id="memoryTotalCount">0</strong></article>
-            <article class="library-stat warning-stat"><span>Needs follow-up</span><strong id="memoryFollowUpCount">0</strong></article>
-            <article class="library-stat"><span>Added this month</span><strong id="memoryMonthCount">0</strong></article>
-            <article class="library-stat"><span>Review due</span><strong id="memoryReviewDueCount">0</strong></article>
-          </div>
-
-          <div class="memory-privacy-banner">
-            <div><strong>Private teaching record</strong><span>Teaching Memory is stored in your browser and connected Classroom Data folder. It is never written into the public GitHub files.</span></div>
-            <div class="memory-banner-actions"><button class="button button-secondary button-small" id="exportMemoryButton">Export memories</button><button class="button button-undo button-small" id="undoMemoryButton" disabled>↶ Undo memory action</button></div>
-          </div>
-
-          <div class="panel memory-toolbar">
-            <input id="memorySearchInput" class="search-input" type="search" placeholder="Search learner, observation, strategy, challenge, next step, or tags…" />
-            <select id="memoryTargetTypeFilter" class="select-input"><option value="all">Individuals & groups</option><option value="individual">Individuals</option><option value="group">Small groups</option></select>
-            <select id="memoryCategoryFilter" class="select-input"><option value="all">All categories</option></select>
-            <select id="memoryStatusFilter" class="select-input"><option value="all">All follow-up statuses</option><option>No action</option><option>Needs follow-up</option><option>Resolved</option></select>
-            <select id="memoryTargetFilter" class="select-input"><option value="all">All learners</option></select>
-            <select id="memorySort" class="select-input"><option value="newest">Newest first</option><option value="review">Review date</option><option value="target">Learner A–Z</option></select>
-            <span id="memoryResultCount" class="library-result-count">0 memories</span>
-          </div>
-          <div id="teachingMemoryList" class="teaching-memory-list"></div>
-        </div>
+      <section class="view" id="memoryView">
+        <div class="page-heading split-heading"><div><span class="eyebrow">Planning</span><h2>Teaching Memory</h2><p>Observations, what worked, challenges, evidence, and next steps.</p></div><button class="button primary" data-add="memory">+ Add memory</button></div>
+        <div id="memoryContent" class="data-list"></div>
       </section>
 
       <section class="view" id="libraryView">
-        <div class="section-intro library-intro">
-          <div>
-            <span class="eyebrow">Digital binder</span>
-            <h3>Resource library</h3>
-            <p>Organize, reuse, and connect teaching resources to lessons. All personalized library data stays in this browser.</p>
-          </div>
-          <div class="library-header-actions">
-            <button class="button button-undo" id="undoLibraryButton" disabled>↶ Undo library action</button>
-            <button class="button button-secondary" id="exportLibraryButton">Export library</button>
-            <button class="button button-secondary" id="findDuplicatesButton">Find duplicates</button>
-            <button class="button button-secondary" id="addCollectionButton">+ Collection</button>
-            <button class="button button-primary" id="addMaterialButton">+ Add resource</button>
-          </div>
-        </div>
-
-        <div class="library-stat-grid">
-          <article class="library-stat"><span>Total resources</span><strong id="libraryTotalCount">0</strong></article>
-          <article class="library-stat"><span>Favorites</span><strong id="libraryFavoriteCount">0</strong></article>
-          <article class="library-stat"><span>Used this month</span><strong id="libraryUsedMonthCount">0</strong></article>
-          <article class="library-stat warning-stat"><span>Needs review</span><strong id="libraryReviewCount">0</strong></article>
-        </div>
-
-        <div class="library-toolbar panel">
-          <div class="library-search-row">
-            <input id="materialSearch" class="search-input library-search" type="search" placeholder="Search title, topic, learner, notes, or tags…" />
-            <select id="materialTypeFilter" class="select-input">
-              <option value="all">All types</option>
-              <option>Slides</option><option>Worksheet</option><option>Drive</option><option>Website</option><option>Video</option><option>Book</option><option>Image</option><option>Audio</option><option>Assessment</option><option>Other</option>
-            </select>
-            <select id="materialGradeFilter" class="select-input"><option value="all">All grades</option></select>
-            <select id="materialSkillFilter" class="select-input"><option value="all">All skills</option></select>
-            <select id="materialSort" class="select-input">
-              <option value="recent">Recently added</option>
-              <option value="used">Recently used</option>
-              <option value="popular">Most used</option>
-              <option value="title">Title A–Z</option>
-            </select>
-          </div>
-          <div class="library-toolbar-lower">
-            <label class="compact-check"><input type="checkbox" id="favoritesOnly" /> Favorites only</label>
-            <button class="text-button" id="selectVisibleButton">Select visible</button>
-            <button class="text-button" id="clearLibraryFilters">Clear filters</button>
-            <span id="libraryResultCount" class="library-result-count">0 resources</span>
-          </div>
-        </div>
-
-        <div class="bulk-toolbar hidden" id="bulkToolbar">
-          <strong><span id="bulkSelectedCount">0</span> selected</strong>
-          <div class="bulk-actions">
-            <button class="button button-small button-secondary" id="bulkFavoriteButton">★ Favorite</button>
-            <button class="button button-small button-secondary" id="bulkEditButton">Classify</button>
-            <button class="button button-small button-secondary" id="bulkReviewedButton">Mark reviewed</button>
-            <button class="button button-small button-danger" id="bulkDeleteButton">Delete</button>
-            <button class="text-button" id="clearSelectionButton">Clear selection</button>
-          </div>
-        </div>
-
-        <div class="library-workspace">
-          <aside class="collection-panel panel" aria-label="Library collections">
-            <div class="collection-heading"><span class="eyebrow">Collections</span><button class="icon-button collection-add-mini" id="addCollectionMiniButton" aria-label="Add collection">+</button></div>
-            <div id="collectionList" class="collection-list"></div>
-          </aside>
-
-          <div class="library-main-column">
-            <div class="classification-banner hidden" id="classificationBanner">
-              <div><strong>Imported resources need a quick classification check.</strong><span>Use Select visible → Classify, then mark the records reviewed.</span></div>
-              <button class="button button-small button-secondary" id="reviewImportedButton">Review now</button>
-            </div>
-            <div id="materialLibrary" class="material-grid enhanced-material-grid"></div>
-          </div>
-        </div>
+        <div class="page-heading split-heading"><div><span class="eyebrow">Resources</span><h2>Library</h2><p>Files, links, and teaching materials — what you use.</p></div><button class="button primary" data-add="resource">+ Add resource</button></div>
+        <div class="toolbar panel"><input id="librarySearch" class="wide-input" placeholder="Search resource title, topic, tag…" /><select id="libraryTypeFilter"><option value="">All resource types</option></select></div>
+        <div id="libraryContent" class="card-grid"></div>
       </section>
 
+      <section class="view" id="playbookView">
+        <div class="page-heading split-heading"><div><span class="eyebrow">Resources</span><h2>Classroom Playbook</h2><p>Reusable routines and procedures — how you do it.</p></div><button class="button primary" data-add="routine">+ Add routine</button></div>
+        <div class="boundary-note"><strong>Library = materials.</strong><span>Playbook = repeatable steps, triggers, cues, and recovery plans.</span></div>
+        <div id="playbookContent" class="card-grid"></div>
+      </section>
+
+      <section class="view" id="scheduleView">
+        <div class="page-heading split-heading"><div><span class="eyebrow">System</span><h2>Schedule Settings</h2><p>Edit recurring defaults, date exceptions, parent blocks, and child time segments.</p></div><button id="addScheduleBlock" class="button primary">+ Add default block</button></div>
+        <div class="schedule-summary-grid"><article><span>Default blocks</span><strong id="defaultBlockCount">0</strong></article><article><span>Date exceptions</span><strong id="exceptionCount">0</strong></article><article><span>Needs review</span><strong id="scheduleReviewCount">0</strong></article><article><span>Conflicts</span><strong id="scheduleConflictCount">0</strong></article></div>
+        <div class="tabs" id="scheduleTabs"><button class="active" data-schedule-tab="defaults">Default schedule</button><button data-schedule-tab="exceptions">Date exceptions</button><button data-schedule-tab="review">Needs review</button></div>
+        <div id="scheduleSettingsContent" class="data-list"></div>
+      </section>
+
+      <section class="view" id="calendarView">
+        <div class="page-heading split-heading"><div><span class="eyebrow">System</span><h2>Calendar</h2><p>School closures, testing, assemblies, field trips, and special dates.</p></div><button class="button primary" data-add="event">+ Add event</button></div>
+        <div id="calendarContent" class="data-list"></div>
+      </section>
+
+      <section class="view" id="tasksView">
+        <div class="page-heading split-heading"><div><span class="eyebrow">System</span><h2>Tasks</h2><p>Preparation, communication, and follow-up work.</p></div><button class="button primary" data-add="task">+ Add task</button></div>
+        <div id="tasksContent" class="data-list"></div>
+      </section>
+
+      <section class="view" id="captureView">
+        <div class="page-heading"><span class="eyebrow">System</span><h2>Quick Capture</h2><p>An inbox for ideas that can later become tasks, memories, resources, or schedule changes.</p></div>
+        <div id="captureContent" class="data-list"></div>
+      </section>
 
       <section class="view" id="automationView">
-        <div class="section-intro automation-intro">
-          <div>
-            <span class="eyebrow">Preview before changes</span>
-            <h3>Automation</h3>
-            <p>Review schedule issues, generate recurring lessons, and apply selected actions. Automation never changes your workspace silently.</p>
-          </div>
-          <div class="learner-header-actions">
-            <button class="button button-secondary" id="undoAutomationButton" disabled>↶ Undo last automation</button>
-            <button class="button button-secondary" id="runActiveRulesButton">Run active rules</button>
-            <button class="button button-primary" id="addAutomationRuleButton">+ Recurring rule</button>
-          </div>
-        </div>
-
-        <div class="automation-safety-banner">
-          <div><strong>No background changes.</strong><span>Checks run only when you open Automation or click Refresh. Every schedule change is previewed and can be undone.</span></div>
-          <button class="text-button" id="refreshAutomationButton" type="button">Refresh review</button>
-        </div>
-
-        <div class="learner-stat-grid automation-stat-grid">
-          <article class="library-stat"><span>Active rules</span><strong id="automationActiveRuleCount">0</strong></article>
-          <article class="library-stat"><span>Schedule issues</span><strong id="automationIssueCount">0</strong></article>
-          <article class="library-stat"><span>Missing materials</span><strong id="automationMissingMaterialCount">0</strong></article>
-          <article class="library-stat"><span>Last run</span><strong id="automationLastRun">—</strong></article>
-        </div>
-
-        <div class="workspace-tabs" role="tablist" aria-label="Automation sections">
-          <button class="workspace-tab active" type="button" data-automation-tab="review">Review</button>
-          <button class="workspace-tab" type="button" data-automation-tab="rules">Recurring Rules</button>
-          <button class="workspace-tab" type="button" data-automation-tab="history">Run History</button>
-        </div>
-
-        <div id="automationReviewPanel" class="automation-tab-panel">
-          <div class="panel automation-review-toolbar">
-            <div><span class="eyebrow">Action queue</span><h3>Recommended actions</h3><p>Closure conflicts, overdue planned lessons, due learner plans, and missing materials are checked locally.</p></div>
-            <div class="automation-toolbar-actions"><button class="button button-secondary button-small" id="selectAllAutomationActions">Select actionable</button><button class="button button-primary" id="applyAutomationActionsButton" disabled>Apply selected</button></div>
-          </div>
-          <div id="automationIssueList" class="automation-issue-list"></div>
-        </div>
-
-        <div id="automationRulesPanel" class="automation-tab-panel hidden">
-          <div class="panel automation-review-toolbar">
-            <div><span class="eyebrow">Reusable schedules</span><h3>Recurring lesson rules</h3><p>Create weekly patterns and preview future lessons before they are added to Weekly Planner.</p></div>
-            <button class="button button-primary" id="addAutomationRuleButtonSecondary">+ Recurring rule</button>
-          </div>
-          <div id="automationRuleList" class="automation-rule-grid"></div>
-        </div>
-
-        <div id="automationHistoryPanel" class="automation-tab-panel hidden">
-          <div class="panel"><div class="panel-heading"><div><span class="eyebrow">Audit trail</span><h3>Automation runs</h3></div></div><div id="automationRunHistory" class="history-list"></div></div>
-        </div>
+        <div class="page-heading"><span class="eyebrow">System</span><h2>Automation</h2><p>Review-first suggestions. Classroom never changes your schedule silently.</p></div>
+        <div id="automationContent" class="data-list"></div>
       </section>
 
       <section class="view" id="importView">
-        <div class="section-intro"><div><span class="eyebrow">Local personalization</span><h3>Import center</h3><p>Bring private schedules and teaching data into this browser without publishing them to GitHub.</p></div><button class="button button-undo" id="undoImportButton" disabled>↶ Undo last import</button></div>
-
-        <div class="privacy-banner"><strong>Local-only by design</strong><span>The selected file is read in your browser. This app does not upload it to the public repository.</span></div>
-
+        <div class="page-heading"><span class="eyebrow">System</span><h2>Import Center</h2><p>Import personalized files locally. Visual XLSX schedules are read cell by cell, including nested time segments.</p></div>
         <div class="import-layout">
-          <section class="panel import-panel">
-            <div class="step-heading"><span>1</span><div><h3>Choose a file</h3><p>Excel, CSV, JSON, or ICS</p></div></div>
-            <label class="drop-zone" id="dropZone">
-              <input id="importFile" type="file" accept=".xlsx,.xls,.csv,.json,.ics,text/csv,application/json,text/calendar" />
-              <strong>Drop a file here or browse</strong>
-              <span>No file is sent to GitHub.</span>
-            </label>
-            <div id="fileSummary" class="file-summary hidden"></div>
-          </section>
-
-          <section class="panel import-panel">
-            <div class="step-heading"><span>2</span><div><h3>Classify and map</h3><p>Review the automatic field matching</p></div></div>
-            <div class="import-controls">
-              <label class="form-field"><span>Import as</span><select id="importCategory" disabled>
-                <option value="lesson">Lessons / schedule</option><option value="calendar">School calendar</option><option value="library">Library resources</option><option value="playbook">Classroom Playbook routines</option><option value="student">Students / learners</option><option value="memory">Teaching memory</option><option value="template">Lesson templates</option>
-              </select></label>
-              <label class="form-field"><span>Import mode</span><select id="importMode" disabled><option value="add">Add new records</option><option value="merge">Merge matching records</option><option value="replace">Replace this category</option></select></label>
-            </div>
-            <div id="mappingArea" class="mapping-area empty-state compact">Choose a file to create a field map.</div>
-          </section>
+          <article class="panel">
+            <div id="dropZone" class="drop-zone"><strong>Drop an XLSX file here</strong><span>or choose a file from your computer or Google Drive folder</span><input id="importFile" type="file" accept=".xlsx,.xlsm,.csv,.json,.ics" /></div>
+            <div id="importWorkbookSummary" class="hidden"></div>
+          </article>
+          <article class="panel import-preview-panel">
+            <div class="panel-heading"><div><span class="eyebrow">Preview before saving</span><h3>Detected schedule</h3></div><button id="confirmScheduleImport" class="button primary" disabled>Import selected blocks</button></div>
+            <div id="importPreview" class="empty-state">Choose an XLSX file. Nothing is saved until you confirm.</div>
+          </article>
         </div>
-
-        <section class="panel import-preview-panel">
-          <div class="panel-heading"><div><span class="eyebrow">Step 3</span><h3>Preview and confirm</h3></div><button class="button button-primary" id="confirmImportButton" disabled>Import records</button></div>
-          <div id="importWarnings" class="import-warnings"></div>
-          <div id="previewArea" class="preview-area empty-state">A preview will appear here before anything is saved.</div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-heading"><div><span class="eyebrow">Traceability</span><h3>Import history</h3></div></div>
-          <div id="importHistory" class="history-list"></div>
-        </section>
+        <article class="panel history-panel"><div class="panel-heading"><div><span class="eyebrow">Manage</span><h3>Imported files and batches</h3></div></div><div id="importHistory" class="data-list"></div></article>
       </section>
 
-      <section class="view" id="storageView">
-        <div class="section-intro storage-intro">
-          <div>
-            <span class="eyebrow">Private local workspace</span>
-            <h3>Storage &amp; backup</h3>
-            <p>Connect the Classroom Data folder you created in Google Drive. Your browser remains the working copy; the folder becomes your durable backup.</p>
-          </div>
-          <div class="storage-header-actions">
-            <button class="button button-secondary" id="fallbackExportButton">Download backup</button>
-            <button class="button button-primary" id="connectFolderButton">Connect Classroom Data folder</button>
-          </div>
+      <section class="view" id="backupView">
+        <div class="page-heading"><span class="eyebrow">System</span><h2>Export &amp; Backup</h2><p>The browser is your work copy; your Classroom Data folder is the durable copy.</p></div>
+        <div class="backup-grid">
+          <article class="panel"><h3>Classroom Data folder</h3><p id="folderDetails">No folder connected.</p><div class="button-row"><button id="connectFolderButton" class="button primary">Connect folder</button><button id="saveFolderButton" class="button subtle">Save now</button><button id="disconnectFolderButton" class="button subtle">Disconnect</button></div></article>
+          <article class="panel"><h3>Portable backup</h3><p>Download or restore a complete local JSON backup.</p><div class="button-row"><button id="downloadBackupButton" class="button primary">Download backup</button><label class="button subtle file-button">Restore backup<input id="restoreBackupInput" type="file" accept=".json,.classroom" /></label></div></article>
         </div>
+      </section>
 
-        <div class="storage-support-banner" id="storageSupportBanner">
-          <strong id="storageSupportTitle">Checking browser support…</strong>
-          <span id="storageSupportText">Chrome folder access is required for direct folder saving.</span>
-        </div>
-
-        <div class="storage-grid">
-          <section class="panel storage-card">
-            <div class="panel-heading">
-              <div><span class="eyebrow">Connection</span><h3>Classroom Data folder</h3></div>
-              <span class="storage-badge" id="folderConnectionBadge">Not connected</span>
-            </div>
-            <dl class="storage-details">
-              <div><dt>Folder</dt><dd id="connectedFolderName">No folder selected</dd></div>
-              <div><dt>Permission</dt><dd id="folderPermissionText">Not granted</dd></div>
-              <div><dt>Folder workspace</dt><dd id="folderSaveTime">No saved workspace</dd></div>
-              <div><dt>Browser copy</dt><dd id="browserSaveTime">Waiting for first save</dd></div>
-            </dl>
-            <div class="storage-button-row">
-              <button class="button button-secondary" id="reconnectFolderButton" disabled>Reconnect</button>
-              <button class="button button-secondary" id="changeFolderButton">Choose another folder</button>
-              <button class="text-button danger-text" id="disconnectFolderButton" disabled>Forget connection</button>
-            </div>
-          </section>
-
-          <section class="panel storage-card">
-            <div class="panel-heading">
-              <div><span class="eyebrow">Synchronization</span><h3 id="syncStatusHeading">Browser only</h3></div>
-              <span class="sync-state-dot" id="syncStateDot"></span>
-            </div>
-            <p class="storage-copy" id="syncStatusText">Connect your folder before direct saving is available.</p>
-            <div class="sync-times">
-              <div><span>Last folder save</span><strong id="lastFolderSave">—</strong></div>
-              <div><span>Last manual backup</span><strong id="lastManualBackup">—</strong></div>
-            </div>
-            <label class="autosave-setting"><input type="checkbox" id="autoSaveFolderToggle" checked /><span><strong>Auto-save to connected folder</strong><small>Writes after Classroom changes, while preserving a previous recovery copy.</small></span></label>
-            <div class="storage-button-row">
-              <button class="button button-primary" id="saveFolderNowButton" disabled>Save to folder now</button>
-              <button class="button button-secondary" id="loadFolderButton" disabled>Load folder workspace</button>
-              <button class="button button-secondary" id="backupNowButton" disabled>Backup now</button>
-            </div>
-          </section>
-        </div>
-
-        <section class="folder-conflict hidden" id="folderConflictPanel">
-          <div>
-            <span class="eyebrow">Action required</span>
-            <h3 id="folderConflictTitle">Browser and folder copies differ</h3>
-            <p id="folderConflictText">Choose which copy should become the current workspace. Nothing will be overwritten until you decide.</p>
-          </div>
-          <div class="folder-conflict-actions">
-            <button class="button button-secondary" id="useFolderCopyButton">Use folder copy</button>
-            <button class="button button-primary" id="useBrowserCopyButton">Keep browser copy</button>
-          </div>
-        </section>
-
-        <div class="storage-grid storage-grid-lower">
-          <section class="panel storage-card">
-            <div class="panel-heading"><div><span class="eyebrow">Folder layout</span><h3>Managed folders</h3></div></div>
-            <div class="folder-tree">
-              <div><strong>Classroom Data</strong></div>
-              <div>├── Imports</div>
-              <div>├── Resource Files</div>
-              <div>├── Backups</div>
-              <div>│&nbsp;&nbsp;&nbsp;└── Recovery</div>
-              <div>├── Exports</div>
-              <div>└── Archive</div>
-            </div>
-            <p class="storage-footnote">Classroom creates missing folders after you grant access. It does not scan outside the selected folder.</p>
-          </section>
-
-          <section class="panel storage-card">
-            <div class="panel-heading">
-              <div><span class="eyebrow">Recovery</span><h3>Automatic previous copy</h3></div>
-            </div>
-            <p class="storage-copy">Before the live folder workspace is replaced, Classroom preserves the previous version in <code>Backups/Recovery</code>.</p>
-            <button class="button button-secondary" id="restorePreviousButton" disabled>Restore previous auto-save</button>
-            <p class="storage-footnote" id="previousRecoveryText">No recovery copy found.</p>
-          </section>
-        </div>
-
-        <section class="panel backup-panel">
-          <div class="panel-heading">
-            <div><span class="eyebrow">Manual snapshots</span><h3>Backups in your connected folder</h3><p>Manual backups are timestamped and are never deleted automatically.</p></div>
-            <button class="button button-secondary button-small" id="refreshBackupsButton" disabled>Refresh list</button>
-          </div>
-          <div id="folderBackupList" class="folder-backup-list"><div class="empty-state compact">Connect your Classroom Data folder to view backups.</div></div>
-        </section>
-
-        <div class="privacy-banner storage-privacy-note">
-          <strong>Keep this folder private</strong>
-          <span>Workspace and backup files are readable JSON. Do not share the Google Drive folder publicly, especially when it contains student or teaching-memory data.</span>
-        </div>
+      <section class="view" id="settingsView">
+        <div class="page-heading"><span class="eyebrow">System</span><h2>Settings</h2><p>Choose a low-saturation palette inspired by traditional Chinese colors and configure school-year behavior.</p></div>
+        <article class="panel"><h3>Color palette</h3><div id="themePicker" class="theme-grid"></div></article>
+        <article class="panel settings-grid"><label>School year begins<input id="schoolYearStart" type="date" /></label><label>Default day starts<input id="dayStartTime" type="time" /></label><label>Default day ends<input id="dayEndTime" type="time" /></label><label><input id="settingsShowWeekends" type="checkbox" /> Show weekends by default</label></article>
       </section>
     </main>
   </div>
 
+  <aside id="detailDrawer" class="drawer hidden" aria-label="Details"><div class="drawer-head"><div><span id="drawerEyebrow" class="eyebrow"></span><h3 id="drawerTitle"></h3></div><button id="closeDrawer" class="icon-button">×</button></div><div id="drawerBody" class="drawer-body"></div></aside>
+  <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
 
-  <dialog id="individualDialog" class="modal">
-    <form method="dialog" id="individualForm">
-      <div class="modal-header"><div><span class="eyebrow">Learner directory</span><h3 id="individualDialogTitle">Add individual</h3><p class="modal-subtitle">Only add people who need individual tracking or focused planning.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <input type="hidden" id="individualId" />
-      <div class="form-grid">
-        <label class="form-field full-width"><span>Name</span><input id="individualName" required maxlength="100" /></label>
-        <label class="form-field"><span>Grade / level</span><input id="individualGrade" placeholder="Grade 3, Beginner…" /></label>
-        <label class="form-field"><span>Current group</span><input id="individualGroup" placeholder="Optional" /></label>
-        <label class="form-field full-width"><span>Goals</span><textarea id="individualGoals" rows="3"></textarea></label>
-        <label class="form-field full-width"><span>Interests and preferences</span><textarea id="individualInterests" rows="3"></textarea></label>
-        <label class="form-field full-width"><span>Notes</span><textarea id="individualNotes" rows="3"></textarea></label>
-      </div>
-      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteIndividualButton">Delete</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save individual</button></div></div>
-    </form>
-  </dialog>
+  <dialog id="entryDialog" class="dialog"><form id="entryForm" method="dialog"><div class="dialog-head"><div><span id="entryDialogEyebrow" class="eyebrow">New</span><h3 id="entryDialogTitle">Add entry</h3></div><button type="button" class="icon-button" data-close-dialog>×</button></div><input type="hidden" id="entryId" /><input type="hidden" id="entryKind" /><div id="entryFields" class="form-grid"></div><div class="dialog-actions"><button type="button" id="deleteEntryButton" class="button danger hidden">Delete</button><span></span><button type="button" class="button subtle" data-close-dialog>Cancel</button><button class="button primary" value="default">Save</button></div></form></dialog>
 
-  <dialog id="smallGroupDialog" class="modal">
-    <form method="dialog" id="smallGroupForm">
-      <div class="modal-header"><div><span class="eyebrow">Learner directory</span><h3 id="smallGroupDialogTitle">Add small group</h3><p class="modal-subtitle">Small groups are for focused reading, intervention, tutoring, projects, or coaching—not the regular whole class.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <input type="hidden" id="smallGroupId" />
-      <div class="form-grid">
-        <label class="form-field full-width"><span>Group name</span><input id="smallGroupName" required maxlength="100" /></label>
-        <label class="form-field"><span>Focus</span><input id="smallGroupFocus" placeholder="Reading fluency, speaking…" /></label>
-        <label class="form-field"><span>Typical cadence</span><input id="smallGroupCadence" placeholder="Saturdays, twice weekly…" /></label>
-        <div class="form-field full-width"><span>Members</span><div id="groupMemberPicker" class="member-picker"></div></div>
-        <label class="form-field full-width"><span>Notes</span><textarea id="smallGroupNotes" rows="3"></textarea></label>
-      </div>
-      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteSmallGroupButton">Delete</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save small group</button></div></div>
-    </form>
-  </dialog>
+  <dialog id="scheduleDialog" class="dialog wide-dialog"><form id="scheduleForm" method="dialog"><div class="dialog-head"><div><span class="eyebrow">Schedule editor</span><h3 id="scheduleDialogTitle">Edit schedule block</h3></div><button type="button" class="icon-button" data-close-dialog>×</button></div><input type="hidden" id="scheduleBlockId" /><input type="hidden" id="scheduleOccurrenceDate" /><div class="form-grid three-col"><label>Title<input id="scheduleTitle" required /></label><label>Category<select id="scheduleCategory"></select></label><label>Day<select id="scheduleDay"></select></label><label>Start<input id="scheduleStart" type="time" required /></label><label>End<input id="scheduleEnd" type="time" required /></label><label>Teacher<input id="scheduleTeacher" /></label><label>Class / group<input id="scheduleClassName" /></label><label>Parent block<select id="scheduleParent"></select></label><label>Subject<input id="scheduleSubject" /></label><label class="span-3 checkbox-label"><input id="scheduleBump" type="checkbox" /> This block participates in lesson-sequence Bump</label></div><fieldset id="scheduleScopeFieldset"><legend>Apply this change to</legend><label><input type="radio" name="scheduleScope" value="occurrence" checked /> This occurrence only <small id="occurrenceScopeHelp"></small></label><label><input type="radio" name="scheduleScope" value="future" /> This and future occurrences</label><label><input type="radio" name="scheduleScope" value="default" /> Entire default schedule</label></fieldset><div id="scheduleImpact" class="impact-box"></div><div class="dialog-actions"><button type="button" id="deleteScheduleButton" class="button danger">Delete…</button><span></span><button type="button" class="button subtle" data-close-dialog>Cancel</button><button class="button primary">Save change</button></div></form></dialog>
 
-  <dialog id="learnerPlanDialog" class="modal modal-wide">
-    <form method="dialog" id="learnerPlanForm">
-      <div class="modal-header"><div><span class="eyebrow">Focused planning</span><h3 id="learnerPlanDialogTitle">Add learner plan</h3><p class="modal-subtitle">Plans organize goals and next steps; scheduled whole-class lessons remain in Weekly Planner.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <input type="hidden" id="learnerPlanId" />
-      <div class="form-grid">
-        <label class="form-field"><span>Plan type</span><select id="learnerPlanType"><option value="individual">Individual Plan</option><option value="group">Small-Group Plan</option></select></label>
-        <label class="form-field"><span>Individual or small group</span><select id="learnerPlanTarget" required></select></label>
-        <label class="form-field full-width"><span>Plan title</span><input id="learnerPlanTitle" required maxlength="140" /></label>
-        <label class="form-field"><span>Status</span><select id="learnerPlanStatus"><option>Active</option><option>Paused</option><option>Completed</option></select></label>
-        <label class="form-field"><span>Next session / review date</span><input id="learnerPlanNextDate" type="date" /></label>
-        <label class="form-field"><span>Focus area</span><input id="learnerPlanFocus" placeholder="Reading, classroom language…" /></label>
-        <label class="form-field"><span>Cadence</span><input id="learnerPlanCadence" placeholder="Weekly, every Saturday…" /></label>
-        <label class="form-field full-width"><span>Goals</span><textarea id="learnerPlanGoals" rows="3"></textarea></label>
-        <label class="form-field full-width"><span>Plan and next steps</span><textarea id="learnerPlanNotes" rows="4"></textarea></label>
-        <label class="form-field full-width"><span>Tags</span><input id="learnerPlanTags" placeholder="reading, review, summer" /></label>
-      </div>
-      <div class="modal-actions"><div class="modal-left-actions"><button class="button button-danger hidden" type="button" id="deleteLearnerPlanButton">Delete</button><button class="button button-secondary hidden" type="button" id="scheduleLearnerPlanButton">Add session to Weekly Planner</button></div><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save plan</button></div></div>
-    </form>
-  </dialog>
+  <dialog id="bumpDialog" class="dialog"><form id="bumpForm" method="dialog"><div class="dialog-head"><div><span class="eyebrow">Dynamic rescheduling</span><h3>Bump lesson</h3></div><button type="button" class="icon-button" data-close-dialog>×</button></div><input type="hidden" id="bumpLessonId" /><label class="radio-card"><input type="radio" name="bumpScope" value="one" checked /><span><strong>Move this lesson only</strong><small>Place only this lesson in the next valid block.</small></span></label><label class="radio-card"><input type="radio" name="bumpScope" value="sequence" /><span><strong>Shift this and following lessons</strong><small>Move the remaining lesson sequence through future valid blocks.</small></span></label><div id="bumpPreview" class="impact-box"></div><div class="dialog-actions"><button type="button" class="button subtle" data-close-dialog>Cancel</button><button class="button primary">Confirm bump</button></div></form></dialog>
 
+  <div id="toast" class="toast hidden"></div>
 
-
-  <dialog id="playbookRoutineDialog" class="modal modal-wide playbook-dialog">
-    <form method="dialog" id="playbookRoutineForm">
-      <div class="modal-header"><div><span class="eyebrow">Classroom Playbook</span><h3 id="playbookRoutineDialogTitle">Add routine</h3><p class="modal-subtitle">Document a reusable classroom procedure. Write one checklist step per line.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <input type="hidden" id="playbookRoutineId" />
-      <div class="form-grid playbook-form-grid">
-        <label class="form-field"><span>Routine type</span><select id="playbookRoutineCategory"><option value="Daily">Daily Routine</option><option value="Teaching">Teaching Routine</option><option value="Operational">Operational Routine</option></select></label>
-        <label class="form-field"><span>Status</span><select id="playbookRoutineStatus"><option>Active</option><option>Draft</option><option>Archived</option></select></label>
-        <label class="form-field full-width"><span>Routine title</span><input id="playbookRoutineTitle" required placeholder="Morning entry routine" /></label>
-        <label class="form-field full-width"><span>Purpose</span><textarea id="playbookRoutinePurpose" rows="2" placeholder="What problem does this routine solve, or what does it help students do consistently?"></textarea></label>
-        <label class="form-field"><span>When / trigger</span><input id="playbookRoutineWhen" placeholder="At arrival, before partner work, after an absence…" /></label>
-        <label class="form-field"><span>Frequency</span><input id="playbookRoutineFrequency" placeholder="Daily, every lesson, as needed…" /></label>
-        <label class="form-field full-width"><span>Checklist steps — one per line</span><textarea id="playbookRoutineSteps" rows="8" required placeholder="Greet students at the door\nStudents unpack materials\nStudents begin the posted warm-up"></textarea></label>
-        <label class="form-field full-width"><span>Teacher language / cues</span><textarea id="playbookRoutineCues" rows="3" placeholder="Exact prompts, signals, gestures, sentence frames, or countdown language."></textarea></label>
-        <label class="form-field full-width"><span>Materials or setup</span><textarea id="playbookRoutineMaterials" rows="3" placeholder="Physical setup or materials needed. You can also link resources below."></textarea></label>
-        <label class="form-field full-width"><span>Reset / recovery plan</span><textarea id="playbookRoutineRecovery" rows="3" placeholder="What should happen when the routine breaks down or needs reteaching?"></textarea></label>
-        <label class="form-field full-width"><span>Linked Library resources</span><select id="playbookRoutineMaterialIds" multiple size="5"></select><small class="form-help">Hold Command (Mac) or Ctrl (Windows) to select more than one.</small></label>
-        <label class="form-field full-width"><span>Tags</span><input id="playbookRoutineTags" placeholder="arrival, transitions, partner work, assessment" /></label>
-        <label class="checkbox-field full-width"><input type="checkbox" id="playbookRoutinePinned" /><span>Pin this routine near the top</span></label>
-      </div>
-      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deletePlaybookRoutineButton">Delete routine</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save routine</button></div></div>
-    </form>
-  </dialog>
-
-  <dialog id="playbookRunDialog" class="modal modal-wide playbook-run-dialog">
-    <div class="modal-header"><div><span class="eyebrow">Run checklist</span><h3 id="playbookRunTitle">Routine</h3><p id="playbookRunSubtitle" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-    <input type="hidden" id="playbookRunRoutineId" />
-    <div id="playbookRunChecklist" class="playbook-run-checklist"></div>
-    <label class="form-field full-width"><span>Run note (optional)</span><textarea id="playbookRunNotes" rows="3" placeholder="What worked, what needed prompting, or what should be adjusted next time?"></textarea></label>
-    <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Close without recording</button><div class="modal-actions-right"><button class="button button-primary" type="button" id="finishPlaybookRunButton">Finish & record</button></div></div>
-  </dialog>
-
-  <dialog id="playbookLinkLessonDialog" class="modal">
-    <div class="modal-header"><div><span class="eyebrow">Connect to planning</span><h3 id="playbookLinkLessonTitle">Add routine to a lesson</h3><p class="modal-subtitle">This links the reusable routine to a dated lesson without turning it into a schedule template.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-    <input type="hidden" id="playbookLinkRoutineId" />
-    <label class="form-field full-width"><span>Lesson</span><select id="playbookLinkLessonId"></select></label>
-    <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><div class="modal-actions-right"><button class="button button-primary" type="button" id="confirmPlaybookLinkButton">Add to lesson</button></div></div>
-  </dialog>
-
-  <dialog id="lessonPlaybookDialog" class="modal modal-wide">
-    <div class="modal-header"><div><span class="eyebrow">Linked routines</span><h3 id="lessonPlaybookTitle">Lesson playbook</h3><p id="lessonPlaybookSubtitle" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-    <input type="hidden" id="lessonPlaybookLessonId" />
-    <div id="lessonPlaybookList" class="lesson-playbook-list"></div>
-    <div class="modal-actions"><button class="button button-secondary" type="button" data-close-dialog>Close</button></div>
-  </dialog>
-
-  <dialog id="teachingMemoryDialog" class="modal modal-wide memory-dialog">
-    <form method="dialog" id="teachingMemoryForm">
-      <div class="modal-header"><div><span class="eyebrow">Teaching Memory</span><h3 id="teachingMemoryDialogTitle">Add teaching memory</h3><p class="modal-subtitle">Capture what you noticed, what worked, and what should happen next.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <input type="hidden" id="teachingMemoryId" />
-      <div class="form-grid">
-        <label class="form-field"><span>For</span><select id="memoryTargetType"><option value="individual">Individual</option><option value="group">Small group</option></select></label>
-        <label class="form-field"><span>Learner / group</span><select id="memoryTargetId" required><option value="">Select…</option></select></label>
-        <label class="form-field"><span>Date</span><input id="memoryDate" type="date" required /></label>
-        <label class="form-field"><span>Category</span><select id="memoryCategory"><option>Progress</option><option>Challenge / misconception</option><option>Engagement</option><option>Preference</option><option>Strategy that worked</option><option>Assessment evidence</option><option>Communication</option><option>Follow-up</option><option>Other</option></select></label>
-        <label class="form-field"><span>Follow-up status</span><select id="memoryStatus"><option>No action</option><option>Needs follow-up</option><option>Resolved</option></select></label>
-        <label class="form-field"><span>Review date</span><input id="memoryReviewDate" type="date" /></label>
-        <label class="form-field full-width"><span>Observation</span><textarea id="memoryObservation" rows="4" required placeholder="What did you notice? Use specific, factual language."></textarea></label>
-        <label class="form-field full-width"><span>What worked</span><textarea id="memoryWhatWorked" rows="3" placeholder="Activity, prompt, scaffold, material, grouping, or routine that helped."></textarea></label>
-        <label class="form-field full-width"><span>Challenge / misconception</span><textarea id="memoryChallenge" rows="3" placeholder="What remained difficult or needs closer attention?"></textarea></label>
-        <label class="form-field full-width"><span>Evidence or example</span><textarea id="memoryEvidence" rows="3" placeholder="A response, work sample, behavior, assessment result, or quotation."></textarea></label>
-        <label class="form-field full-width"><span>Next step</span><textarea id="memoryNextStep" rows="3" placeholder="What should you revisit, change, or try next?"></textarea></label>
-        <label class="form-field"><span>Linked learner plan</span><select id="memoryPlanId"><option value="">None</option></select></label>
-        <label class="form-field"><span>Linked lesson</span><select id="memoryLessonId"><option value="">None</option></select></label>
-        <label class="form-field full-width"><span>Tags</span><input id="memoryTags" placeholder="reading, tone, confidence, review" /></label>
-        <label class="checkbox-field full-width"><input type="checkbox" id="memoryPinned" /><span>Pin this memory near the top</span></label>
-      </div>
-      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteTeachingMemoryButton">Delete memory</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save memory</button></div></div>
-    </form>
-  </dialog>
-
-  <dialog id="searchDetailDialog" class="modal modal-wide">
-    <div class="modal-header"><div><span class="eyebrow" id="searchDetailEyebrow">Search result</span><h3 id="searchDetailTitle">Details</h3><p id="searchDetailSubtitle" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-    <div id="searchDetailBody" class="search-detail-body"></div>
-    <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Close</button></div></div>
-  </dialog>
-
-  <dialog id="lessonDialog" class="modal">
-    <form method="dialog" id="lessonForm">
-      <div class="modal-header"><div><span class="eyebrow">Lesson card</span><h3 id="lessonDialogTitle">Add lesson</h3></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <input type="hidden" id="lessonId" />
-      <div class="form-grid">
-        <label class="form-field full-width"><span>Lesson title</span><input id="lessonTitle" required /></label>
-        <label class="form-field"><span>Date</span><input id="lessonDate" type="date" required /></label>
-        <label class="form-field"><span>Start time</span><input id="lessonTime" type="time" required /></label>
-        <label class="form-field"><span>Duration (minutes)</span><input id="lessonDuration" type="number" min="15" step="5" value="60" required /></label>
-        <label class="form-field"><span>Lesson type</span><select id="lessonType"><option>Class</option><option value="One-on-one">Individual session</option><option>Small-group session</option><option>Planning</option></select></label>
-        <label class="form-field"><span>Status</span><select id="lessonStatus"><option>Planned</option><option>Completed</option><option>Needs follow-up</option><option>Cancelled</option></select></label>
-        <label class="form-field full-width"><span>Learner or group</span><input id="lessonLearner" /></label>
-        <label class="form-field full-width"><span>Learning objective</span><textarea id="lessonObjective" rows="3"></textarea></label>
-        <label class="form-field full-width"><span>Notes</span><textarea id="lessonNotes" rows="3"></textarea></label>
-        <label class="form-field full-width"><span>Material link</span><input id="lessonMaterialUrl" type="url" placeholder="https://…" /></label>
-        <div class="form-field full-width lesson-linked-field"><span>Linked library resources</span><div id="lessonLinkedResources" class="lesson-linked-resources"><span class="modal-subtitle">Save the lesson, then attach resources from Library.</span></div></div>
-      </div>
-      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteLessonButton">Delete</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save lesson</button></div></div>
-    </form>
-  </dialog>
-
-  <dialog id="materialDialog" class="modal modal-library">
-    <form method="dialog" id="materialForm">
-      <div class="modal-header">
-        <div><span class="eyebrow">Library resource</span><h3 id="materialDialogTitle">Add resource</h3><p id="materialUsageSummary" class="modal-subtitle"></p></div>
-        <button class="close-button" type="button" data-close-dialog>×</button>
-      </div>
-      <input type="hidden" id="materialId" />
-      <div class="form-grid">
-        <label class="form-field full-width"><span>Title</span><input id="materialTitle" required /></label>
-        <label class="form-field"><span>Type</span><select id="materialType"><option>Slides</option><option>Worksheet</option><option>Drive</option><option>Website</option><option>Video</option><option>Book</option><option>Image</option><option>Audio</option><option>Assessment</option><option>Other</option></select></label>
-        <label class="form-field"><span>Collection</span><select id="materialCollection"><option value="">Unfiled</option></select></label>
-        <label class="form-field"><span>Grade</span><input id="materialGrade" placeholder="Grade 3" /></label>
-        <label class="form-field"><span>Skill</span><input id="materialSkill" placeholder="Reading, Speaking…" /></label>
-        <label class="form-field"><span>Topic</span><input id="materialTopic" /></label>
-        <label class="form-field"><span>Unit</span><input id="materialUnit" /></label>
-        <label class="form-field"><span>Learner / audience</span><input id="materialLearner" /></label>
-        <label class="form-field"><span>Tags</span><input id="materialTags" placeholder="game, vocabulary, review" /></label>
-        <label class="form-field full-width"><span>Link</span><input id="materialUrl" type="url" placeholder="https://…" /></label>
-        <label class="form-field full-width"><span>Notes</span><textarea id="materialNotes" rows="4"></textarea></label>
-        <label class="checkbox-field"><input type="checkbox" id="materialFavorite" /><span>Favorite resource</span></label>
-        <label class="checkbox-field"><input type="checkbox" id="materialReviewed" checked /><span>Classification reviewed</span></label>
-      </div>
-      <div class="modal-actions">
-        <div class="modal-left-actions">
-          <button class="button button-danger hidden" type="button" id="deleteMaterialButton">Delete</button>
-          <button class="button button-secondary hidden" type="button" id="duplicateMaterialButton">Duplicate</button>
-        </div>
-        <div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save resource</button></div>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="collectionDialog" class="modal modal-small">
-    <form method="dialog" id="collectionForm">
-      <div class="modal-header"><div><span class="eyebrow">Library organization</span><h3 id="collectionDialogTitle">New collection</h3></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <input type="hidden" id="collectionId" />
-      <label class="form-field full-width"><span>Collection name</span><input id="collectionName" required maxlength="80" placeholder="Unit 1, CEO Chinese, Reading games…" /></label>
-      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteCollectionButton">Delete collection</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save collection</button></div></div>
-    </form>
-  </dialog>
-
-  <dialog id="bulkEditDialog" class="modal">
-    <form method="dialog" id="bulkEditForm">
-      <div class="modal-header"><div><span class="eyebrow">Bulk classification</span><h3>Update selected resources</h3><p class="modal-subtitle">Blank fields will remain unchanged.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <div class="form-grid">
-        <label class="form-field"><span>Collection</span><select id="bulkCollection"><option value="">Leave unchanged</option><option value="__unfiled__">Move to Unfiled</option></select></label>
-        <label class="form-field"><span>Grade</span><input id="bulkGrade" /></label>
-        <label class="form-field"><span>Skill</span><input id="bulkSkill" /></label>
-        <label class="form-field"><span>Topic</span><input id="bulkTopic" /></label>
-        <label class="form-field"><span>Unit</span><input id="bulkUnit" /></label>
-        <label class="form-field"><span>Learner / audience</span><input id="bulkLearner" /></label>
-        <label class="form-field full-width"><span>Add tags</span><input id="bulkTags" placeholder="Comma-separated; existing tags are preserved" /></label>
-        <label class="checkbox-field full-width"><input type="checkbox" id="bulkMarkReviewed" /><span>Mark classification reviewed</span></label>
-      </div>
-      <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Apply changes</button></div></div>
-    </form>
-  </dialog>
-
-  <dialog id="attachResourceDialog" class="modal modal-small">
-    <form method="dialog" id="attachResourceForm">
-      <div class="modal-header"><div><span class="eyebrow">Connect resource</span><h3>Attach to a lesson</h3><p id="attachResourceName" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <input type="hidden" id="attachMaterialId" />
-      <label class="form-field full-width"><span>Lesson</span><select id="attachLessonId" required></select></label>
-      <label class="checkbox-field full-width"><input type="checkbox" id="setPrimaryMaterialLink" checked /><span>Use this resource as the lesson’s primary material link when empty</span></label>
-      <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Attach resource</button></div></div>
-    </form>
-  </dialog>
-
-  <dialog id="duplicatesDialog" class="modal modal-wide">
-    <div class="modal-header"><div><span class="eyebrow">Library cleanup</span><h3>Possible duplicate resources</h3><p class="modal-subtitle">Matches are based on the same URL or the same normalized title and type.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-    <div id="duplicateGroups" class="duplicate-groups"></div>
-    <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Close</button><button class="button button-primary" id="mergeAllDuplicatesButton" type="button">Merge all groups</button></div></div>
-  </dialog>
-
-
-  <dialog id="automationRuleDialog" class="modal modal-wide">
-    <form method="dialog" id="automationRuleForm">
-      <div class="modal-header"><div><span class="eyebrow">Recurring schedule</span><h3 id="automationRuleDialogTitle">Add recurring rule</h3><p class="modal-subtitle">Rules generate a preview first. Nothing is added until you confirm.</p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <input type="hidden" id="automationRuleId" />
-      <div class="form-grid">
-        <label class="form-field full-width"><span>Rule name / lesson title</span><input id="automationRuleTitle" required /></label>
-        <label class="form-field"><span>Start date</span><input id="automationRuleStart" type="date" required /></label>
-        <label class="form-field"><span>End date</span><input id="automationRuleEnd" type="date" /></label>
-        <div class="form-field full-width"><span>Days of week</span><div class="weekday-picker" id="automationWeekdayPicker">
-          <label><input type="checkbox" value="1" checked /><span>Mon</span></label><label><input type="checkbox" value="2" /><span>Tue</span></label><label><input type="checkbox" value="3" /><span>Wed</span></label><label><input type="checkbox" value="4" /><span>Thu</span></label><label><input type="checkbox" value="5" /><span>Fri</span></label><label><input type="checkbox" value="6" /><span>Sat</span></label><label><input type="checkbox" value="0" /><span>Sun</span></label>
-        </div></div>
-        <label class="form-field"><span>Start time</span><input id="automationRuleTime" type="time" value="09:00" required /></label>
-        <label class="form-field"><span>Duration (minutes)</span><input id="automationRuleDuration" type="number" min="15" step="5" value="60" required /></label>
-        <label class="form-field"><span>Lesson type</span><select id="automationRuleType"><option>Class</option><option value="One-on-one">Individual session</option><option>Small-group session</option><option>Planning</option></select></label>
-        <label class="form-field"><span>Learner or group</span><input id="automationRuleLearner" /></label>
-        <label class="form-field full-width"><span>Learning objective</span><textarea id="automationRuleObjective" rows="3"></textarea></label>
-        <label class="form-field full-width"><span>Notes</span><textarea id="automationRuleNotes" rows="3"></textarea></label>
-        <label class="form-field full-width"><span>Material link</span><input id="automationRuleMaterialUrl" type="url" placeholder="https://…" /></label>
-        <label class="checkbox-field full-width"><input type="checkbox" id="automationRuleSkipClosures" checked /><span>Check imported school-calendar closures</span></label>
-        <label class="form-field full-width"><span>When a date is closed</span><select id="automationRuleClosureBehavior"><option value="move">Move to the next open date</option><option value="skip">Skip that occurrence</option></select></label>
-        <label class="checkbox-field full-width"><input type="checkbox" id="automationRuleActive" checked /><span>Rule is active</span></label>
-      </div>
-      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteAutomationRuleButton">Delete rule</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save rule</button></div></div>
-    </form>
-  </dialog>
-
-  <dialog id="automationPreviewDialog" class="modal modal-wide automation-preview-dialog">
-    <div class="modal-header"><div><span class="eyebrow">Automation preview</span><h3 id="automationPreviewTitle">Review generated lessons</h3><p id="automationPreviewSubtitle" class="modal-subtitle"></p></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-    <div class="automation-preview-controls"><label class="form-field"><span>Generate through</span><input id="automationPreviewThrough" type="date" /></label><button class="button button-secondary" id="refreshAutomationPreviewButton" type="button">Refresh preview</button></div>
-    <div id="automationPreviewList" class="automation-preview-list"></div>
-    <div class="modal-actions"><span id="automationPreviewCount" class="modal-subtitle"></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" id="applyAutomationPreviewButton" type="button">Add lessons</button></div></div>
-  </dialog>
-
-  <dialog id="bumpDialog" class="modal modal-small">
-    <form method="dialog" id="bumpForm">
-      <div class="modal-header"><div><span class="eyebrow">Dynamic rescheduling</span><h3>Bump this sequence</h3></div><button class="close-button" type="button" data-close-dialog>×</button></div>
-      <p class="modal-copy" id="bumpImpactText">Checking affected lessons…</p>
-      <input type="hidden" id="bumpLessonId" />
-      <div class="form-grid">
-        <label class="form-field full-width"><span>Move forward by</span><select id="bumpDays"><option value="1">1 day</option><option value="2">2 days</option><option value="3">3 days</option><option value="7">1 week</option></select></label>
-        <label class="checkbox-field full-width"><input type="checkbox" id="skipWeekends" checked /><span>Skip Saturday and Sunday</span></label>
-      </div>
-      <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Confirm bump</button></div></div>
-    </form>
-  </dialog>
-
-  <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button></div>
-
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app-v6-core.js"></script>
-  <script src="library-v6.js"></script>
-  <script src="storage-v6.js"></script>
-  <script src="learner-planning-v6.js"></script>
-  <script src="teaching-memory-v6.js"></script>
-  <script src="automation-v6.js"></script>
-  <script src="playbook-v6.js"></script>
-  <script src="inline-search-v6.js"></script>
+  <script src="assets/vendor/jszip.min.js"></script>
+  <script src="xlsx-import-v7.js"></script>
+  <script src="app-v7.js"></script>
 </body>
 </html>
