@@ -1,2 +1,2 @@
-Classroom Sprint 2B — Library
-Expected files: index.html, app-v2b-core.js, library-v2b.js, styles-v2b.css
+Classroom Sprint 2B.1 — Local Folder & Backup
+Expected URL query: ?v=2b1

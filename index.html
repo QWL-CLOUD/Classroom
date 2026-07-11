@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
-  <title>Classroom · Sprint 2B</title>
+  <title>Classroom · Sprint 2B.1</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-v2b.css" />
+  <link rel="stylesheet" href="styles-v2b1.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -22,6 +22,7 @@
         <button class="nav-item" data-view="sessions">One-on-one sessions</button>
         <button class="nav-item" data-view="library">Library</button>
         <button class="nav-item nav-new" data-view="import"><span>Import center</span><small>NEW</small></button>
+        <button class="nav-item nav-new" data-view="storage"><span>Storage &amp; backup</span><small>LOCAL</small></button>
       </nav>
 
       <div class="sidebar-card">
@@ -29,13 +30,14 @@
         <strong>Personal data stays local.</strong>
         <p>Import schedules, learners, and teaching records into this browser. They are not written to GitHub.</p>
       </div>
-      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 2B · Library</span></p>
+      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 2B.1 · Local backup</span></p>
     </aside>
 
     <main class="main-content">
       <header class="topbar">
         <div><p class="eyebrow" id="viewEyebrow">Workspace</p><h2 id="viewTitle">Teaching overview</h2></div>
         <div class="topbar-actions">
+          <button class="folder-status-pill" id="folderStatusPill" data-go-to="storage" type="button"><span class="folder-status-dot"></span><span id="folderStatusPillText">Browser only</span></button>
           <button class="button button-secondary" id="exportButton">Export backup</button>
           <button class="button button-primary" id="addLessonButton">+ Add lesson</button>
         </div>
@@ -197,6 +199,113 @@
           <div id="importHistory" class="history-list"></div>
         </section>
       </section>
+
+      <section class="view" id="storageView">
+        <div class="section-intro storage-intro">
+          <div>
+            <span class="eyebrow">Private local workspace</span>
+            <h3>Storage &amp; backup</h3>
+            <p>Connect the Classroom Data folder you created in Google Drive. Your browser remains the working copy; the folder becomes your durable backup.</p>
+          </div>
+          <div class="storage-header-actions">
+            <button class="button button-secondary" id="fallbackExportButton">Download backup</button>
+            <button class="button button-primary" id="connectFolderButton">Connect Classroom Data folder</button>
+          </div>
+        </div>
+
+        <div class="storage-support-banner" id="storageSupportBanner">
+          <strong id="storageSupportTitle">Checking browser support…</strong>
+          <span id="storageSupportText">Chrome folder access is required for direct folder saving.</span>
+        </div>
+
+        <div class="storage-grid">
+          <section class="panel storage-card">
+            <div class="panel-heading">
+              <div><span class="eyebrow">Connection</span><h3>Classroom Data folder</h3></div>
+              <span class="storage-badge" id="folderConnectionBadge">Not connected</span>
+            </div>
+            <dl class="storage-details">
+              <div><dt>Folder</dt><dd id="connectedFolderName">No folder selected</dd></div>
+              <div><dt>Permission</dt><dd id="folderPermissionText">Not granted</dd></div>
+              <div><dt>Folder workspace</dt><dd id="folderSaveTime">No saved workspace</dd></div>
+              <div><dt>Browser copy</dt><dd id="browserSaveTime">Waiting for first save</dd></div>
+            </dl>
+            <div class="storage-button-row">
+              <button class="button button-secondary" id="reconnectFolderButton" disabled>Reconnect</button>
+              <button class="button button-secondary" id="changeFolderButton">Choose another folder</button>
+              <button class="text-button danger-text" id="disconnectFolderButton" disabled>Forget connection</button>
+            </div>
+          </section>
+
+          <section class="panel storage-card">
+            <div class="panel-heading">
+              <div><span class="eyebrow">Synchronization</span><h3 id="syncStatusHeading">Browser only</h3></div>
+              <span class="sync-state-dot" id="syncStateDot"></span>
+            </div>
+            <p class="storage-copy" id="syncStatusText">Connect your folder before direct saving is available.</p>
+            <div class="sync-times">
+              <div><span>Last folder save</span><strong id="lastFolderSave">—</strong></div>
+              <div><span>Last manual backup</span><strong id="lastManualBackup">—</strong></div>
+            </div>
+            <label class="autosave-setting"><input type="checkbox" id="autoSaveFolderToggle" checked /><span><strong>Auto-save to connected folder</strong><small>Writes after Classroom changes, while preserving a previous recovery copy.</small></span></label>
+            <div class="storage-button-row">
+              <button class="button button-primary" id="saveFolderNowButton" disabled>Save to folder now</button>
+              <button class="button button-secondary" id="loadFolderButton" disabled>Load folder workspace</button>
+              <button class="button button-secondary" id="backupNowButton" disabled>Backup now</button>
+            </div>
+          </section>
+        </div>
+
+        <section class="folder-conflict hidden" id="folderConflictPanel">
+          <div>
+            <span class="eyebrow">Action required</span>
+            <h3 id="folderConflictTitle">Browser and folder copies differ</h3>
+            <p id="folderConflictText">Choose which copy should become the current workspace. Nothing will be overwritten until you decide.</p>
+          </div>
+          <div class="folder-conflict-actions">
+            <button class="button button-secondary" id="useFolderCopyButton">Use folder copy</button>
+            <button class="button button-primary" id="useBrowserCopyButton">Keep browser copy</button>
+          </div>
+        </section>
+
+        <div class="storage-grid storage-grid-lower">
+          <section class="panel storage-card">
+            <div class="panel-heading"><div><span class="eyebrow">Folder layout</span><h3>Managed folders</h3></div></div>
+            <div class="folder-tree">
+              <div><strong>Classroom Data</strong></div>
+              <div>├── Imports</div>
+              <div>├── Resource Files</div>
+              <div>├── Backups</div>
+              <div>│&nbsp;&nbsp;&nbsp;└── Recovery</div>
+              <div>├── Exports</div>
+              <div>└── Archive</div>
+            </div>
+            <p class="storage-footnote">Classroom creates missing folders after you grant access. It does not scan outside the selected folder.</p>
+          </section>
+
+          <section class="panel storage-card">
+            <div class="panel-heading">
+              <div><span class="eyebrow">Recovery</span><h3>Automatic previous copy</h3></div>
+            </div>
+            <p class="storage-copy">Before the live folder workspace is replaced, Classroom preserves the previous version in <code>Backups/Recovery</code>.</p>
+            <button class="button button-secondary" id="restorePreviousButton" disabled>Restore previous auto-save</button>
+            <p class="storage-footnote" id="previousRecoveryText">No recovery copy found.</p>
+          </section>
+        </div>
+
+        <section class="panel backup-panel">
+          <div class="panel-heading">
+            <div><span class="eyebrow">Manual snapshots</span><h3>Backups in your connected folder</h3><p>Manual backups are timestamped and are never deleted automatically.</p></div>
+            <button class="button button-secondary button-small" id="refreshBackupsButton" disabled>Refresh list</button>
+          </div>
+          <div id="folderBackupList" class="folder-backup-list"><div class="empty-state compact">Connect your Classroom Data folder to view backups.</div></div>
+        </section>
+
+        <div class="privacy-banner storage-privacy-note">
+          <strong>Keep this folder private</strong>
+          <span>Workspace and backup files are readable JSON. Do not share the Google Drive folder publicly, especially when it contains student or teaching-memory data.</span>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -310,7 +419,8 @@
   <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button></div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script src="app-v2b-core.js"></script>
-  <script src="library-v2b.js"></script>
+  <script src="app-v2b1-core.js"></script>
+  <script src="library-v2b1.js"></script>
+  <script src="storage-v2b1.js"></script>
 </body>
 </html>
