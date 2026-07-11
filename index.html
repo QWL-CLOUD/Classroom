@@ -3,105 +3,58 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Classroom — a flexible lesson planning workspace for classes and one-on-one sessions." />
-  <title>Classroom · Sprint 2A Hotfix</title>
+  <meta name="description" content="Classroom — a privacy-first local teaching workspace." />
+  <title>Classroom · Sprint 2A.3</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-  <link rel="stylesheet" href="styles-sprint2a-hotfix.css" />
+  <link rel="stylesheet" href="styles-v2a3.css" />
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" aria-label="Main navigation">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true">C</div>
-        <div>
-          <h1>Classroom</h1>
-          <p>Teaching workspace</p>
-        </div>
+        <div><h1>Classroom</h1><p>Teaching workspace</p></div>
       </div>
 
       <nav class="nav-list">
         <button class="nav-item active" data-view="dashboard">Overview</button>
         <button class="nav-item" data-view="calendar">Weekly planner</button>
         <button class="nav-item" data-view="sessions">One-on-one sessions</button>
-        <button class="nav-item" data-view="materials">Materials</button>
+        <button class="nav-item" data-view="library">Library</button>
+        <button class="nav-item nav-new" data-view="import"><span>Import center</span><small>NEW</small></button>
       </nav>
 
       <div class="sidebar-card">
-        <span class="eyebrow">Flexible planning</span>
-        <strong>Plans change. Your calendar can too.</strong>
-        <p>Use Bump to move a lesson and all later lessons forward in one click.</p>
+        <span class="eyebrow">Privacy first</span>
+        <strong>Personal data stays local.</strong>
+        <p>Import schedules, learners, and teaching records into this browser. They are not written to GitHub.</p>
       </div>
-
-      <p class="credit">Designed by: Alyssa × ChatGPT</p>
+      <p class="credit">Designed by: Alyssa × ChatGPT<br><span>Sprint 2A.3</span></p>
     </aside>
 
     <main class="main-content">
       <header class="topbar">
-        <div>
-          <p class="eyebrow" id="viewEyebrow">Workspace</p>
-          <h2 id="viewTitle">Teaching overview</h2>
-        </div>
+        <div><p class="eyebrow" id="viewEyebrow">Workspace</p><h2 id="viewTitle">Teaching overview</h2></div>
         <div class="topbar-actions">
-          <button class="button button-secondary" id="exportButton">Export data</button>
+          <button class="button button-secondary" id="exportButton">Export backup</button>
           <button class="button button-primary" id="addLessonButton">+ Add lesson</button>
         </div>
       </header>
 
       <section class="view active" id="dashboardView">
         <div class="hero-card">
-          <div>
-            <span class="eyebrow">Today</span>
-            <h3 id="todayHeading">Your teaching day</h3>
-            <p id="todaySummary">Loading your plan…</p>
-          </div>
-          <button class="button button-light" data-go-to="calendar">Open weekly planner</button>
+          <div><span class="eyebrow">Local workspace</span><h3 id="todayHeading">Your teaching day</h3><p id="todaySummary">Loading your plan…</p></div>
+          <div class="hero-actions"><button class="button button-light" data-go-to="calendar">Open weekly planner</button><button class="button button-light" data-go-to="import">Import personalized data</button></div>
         </div>
-
         <div class="stats-grid">
-          <article class="stat-card">
-            <span>This week</span>
-            <strong id="weekLessonCount">0</strong>
-            <p>planned lessons</p>
-          </article>
-          <article class="stat-card">
-            <span>One-on-one</span>
-            <strong id="oneOnOneCount">0</strong>
-            <p>sessions this week</p>
-          </article>
-          <article class="stat-card">
-            <span>Materials</span>
-            <strong id="materialCount">0</strong>
-            <p>linked resources</p>
-          </article>
-          <article class="stat-card">
-            <span>Upcoming</span>
-            <strong id="nextLessonTime">—</strong>
-            <p id="nextLessonLabel">No lesson scheduled</p>
-          </article>
+          <article class="stat-card"><span>This week</span><strong id="weekLessonCount">0</strong><p>planned lessons</p></article>
+          <article class="stat-card"><span>One-on-one</span><strong id="oneOnOneCount">0</strong><p>sessions this week</p></article>
+          <article class="stat-card"><span>Library</span><strong id="materialCount">0</strong><p>saved resources</p></article>
+          <article class="stat-card"><span>Imports</span><strong id="importCount">0</strong><p>local import batches</p></article>
         </div>
-
         <div class="two-column-grid">
-          <section class="panel">
-            <div class="panel-heading">
-              <div>
-                <span class="eyebrow">Next up</span>
-                <h3>Upcoming lessons</h3>
-              </div>
-              <button class="text-button" data-go-to="calendar">View all</button>
-            </div>
-            <div id="upcomingList" class="card-list"></div>
-          </section>
-
-          <section class="panel">
-            <div class="panel-heading">
-              <div>
-                <span class="eyebrow">Quick access</span>
-                <h3>Recently used materials</h3>
-              </div>
-              <button class="text-button" data-go-to="materials">Open library</button>
-            </div>
-            <div id="recentMaterials" class="resource-list"></div>
-          </section>
+          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Next up</span><h3>Upcoming lessons</h3></div><button class="text-button" data-go-to="calendar">View all</button></div><div id="upcomingList" class="card-list"></div></section>
+          <section class="panel"><div class="panel-heading"><div><span class="eyebrow">Quick access</span><h3>Recently used resources</h3></div><button class="text-button" data-go-to="library">Open library</button></div><div id="recentMaterials" class="resource-list"></div></section>
         </div>
       </section>
 
@@ -109,206 +62,126 @@
         <div class="planner-toolbar">
           <div class="week-controls">
             <button class="icon-button" id="previousWeek" aria-label="Previous week">←</button>
-            <div>
-              <span class="eyebrow">Week of</span>
-              <h3 id="weekRange"></h3>
-            </div>
+            <div><span class="eyebrow">Week of</span><h3 id="weekRange"></h3></div>
             <button class="icon-button" id="nextWeek" aria-label="Next week">→</button>
             <button class="button button-secondary button-small" id="todayButton">Today</button>
+            <button class="button button-undo button-small" id="undoBumpButton" disabled>↶ Undo last bump</button>
           </div>
-          <div class="planner-note">Saturday and Sunday are included for flexible sessions.</div>
+          <div class="planner-note">Monday–Sunday · Bump changes can be undone.</div>
         </div>
         <div class="week-grid" id="weekGrid" aria-live="polite"></div>
       </section>
 
       <section class="view" id="sessionsView">
-        <div class="section-intro">
-          <div>
-            <span class="eyebrow">Individualized instruction</span>
-            <h3>One-on-one session planning</h3>
-            <p>Keep goals, lesson focus, notes, and linked materials together for each learner.</p>
-          </div>
-          <button class="button button-primary" id="addSessionButton">+ New one-on-one session</button>
-        </div>
+        <div class="section-intro"><div><span class="eyebrow">Individualized instruction</span><h3>One-on-one session planning</h3><p>Keep goals, lesson focus, notes, and linked materials together for each learner.</p></div><button class="button button-primary" id="addSessionButton">+ New one-on-one session</button></div>
         <div id="sessionList" class="session-grid"></div>
       </section>
 
-      <section class="view" id="materialsView">
-        <div class="section-intro">
-          <div>
-            <span class="eyebrow">Digital binder</span>
-            <h3>Teaching materials</h3>
-            <p>Store Google Drive links, slide decks, worksheets, websites, and activity resources.</p>
-          </div>
-          <button class="button button-primary" id="addMaterialButton">+ Add material</button>
-        </div>
-        <div class="filter-row">
-          <input id="materialSearch" class="search-input" type="search" placeholder="Search materials…" />
-          <select id="materialTypeFilter" class="select-input" aria-label="Filter materials by type">
-            <option value="all">All types</option>
-            <option value="Slides">Slides</option>
-            <option value="Worksheet">Worksheet</option>
-            <option value="Drive">Google Drive</option>
-            <option value="Website">Website</option>
-            <option value="Video">Video</option>
-            <option value="Other">Other</option>
-          </select>
+      <section class="view" id="libraryView">
+        <div class="section-intro"><div><span class="eyebrow">Digital binder</span><h3>Resource library</h3><p>Organize links by grade, skill, topic, unit, and custom tags.</p></div><button class="button button-primary" id="addMaterialButton">+ Add resource</button></div>
+        <div class="filter-row library-filters">
+          <input id="materialSearch" class="search-input" type="search" placeholder="Search title, topic, unit, or tags…" />
+          <select id="materialTypeFilter" class="select-input"><option value="all">All types</option><option>Slides</option><option>Worksheet</option><option>Drive</option><option>Website</option><option>Video</option><option>Other</option></select>
+          <select id="materialSkillFilter" class="select-input"><option value="all">All skills</option></select>
         </div>
         <div id="materialLibrary" class="material-grid"></div>
+      </section>
+
+      <section class="view" id="importView">
+        <div class="section-intro"><div><span class="eyebrow">Local personalization</span><h3>Import center</h3><p>Bring private schedules and teaching data into this browser without publishing them to GitHub.</p></div><button class="button button-undo" id="undoImportButton" disabled>↶ Undo last import</button></div>
+
+        <div class="privacy-banner"><strong>Local-only by design</strong><span>The selected file is read in your browser. This app does not upload it to the public repository.</span></div>
+
+        <div class="import-layout">
+          <section class="panel import-panel">
+            <div class="step-heading"><span>1</span><div><h3>Choose a file</h3><p>Excel, CSV, JSON, or ICS</p></div></div>
+            <label class="drop-zone" id="dropZone">
+              <input id="importFile" type="file" accept=".xlsx,.xls,.csv,.json,.ics,text/csv,application/json,text/calendar" />
+              <strong>Drop a file here or browse</strong>
+              <span>No file is sent to GitHub.</span>
+            </label>
+            <div id="fileSummary" class="file-summary hidden"></div>
+          </section>
+
+          <section class="panel import-panel">
+            <div class="step-heading"><span>2</span><div><h3>Classify and map</h3><p>Review the automatic field matching</p></div></div>
+            <div class="import-controls">
+              <label class="form-field"><span>Import as</span><select id="importCategory" disabled>
+                <option value="lesson">Lessons / schedule</option><option value="calendar">School calendar</option><option value="library">Library resources</option><option value="student">Students / learners</option><option value="memory">Teaching memory</option><option value="template">Lesson templates</option>
+              </select></label>
+              <label class="form-field"><span>Import mode</span><select id="importMode" disabled><option value="add">Add new records</option><option value="merge">Merge matching records</option><option value="replace">Replace this category</option></select></label>
+            </div>
+            <div id="mappingArea" class="mapping-area empty-state compact">Choose a file to create a field map.</div>
+          </section>
+        </div>
+
+        <section class="panel import-preview-panel">
+          <div class="panel-heading"><div><span class="eyebrow">Step 3</span><h3>Preview and confirm</h3></div><button class="button button-primary" id="confirmImportButton" disabled>Import records</button></div>
+          <div id="importWarnings" class="import-warnings"></div>
+          <div id="previewArea" class="preview-area empty-state">A preview will appear here before anything is saved.</div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading"><div><span class="eyebrow">Traceability</span><h3>Import history</h3></div></div>
+          <div id="importHistory" class="history-list"></div>
+        </section>
       </section>
     </main>
   </div>
 
   <dialog id="lessonDialog" class="modal">
     <form method="dialog" id="lessonForm">
-      <div class="modal-header">
-        <div>
-          <span class="eyebrow">Lesson card</span>
-          <h3 id="lessonDialogTitle">Add lesson</h3>
-        </div>
-        <button class="close-button" type="button" data-close-dialog aria-label="Close">×</button>
-      </div>
-
+      <div class="modal-header"><div><span class="eyebrow">Lesson card</span><h3 id="lessonDialogTitle">Add lesson</h3></div><button class="close-button" type="button" data-close-dialog>×</button></div>
       <input type="hidden" id="lessonId" />
       <div class="form-grid">
-        <label class="form-field full-width">
-          <span>Lesson title</span>
-          <input id="lessonTitle" required placeholder="e.g., Self-introduction and greetings" />
-        </label>
-        <label class="form-field">
-          <span>Date</span>
-          <input id="lessonDate" type="date" required />
-        </label>
-        <label class="form-field">
-          <span>Start time</span>
-          <input id="lessonTime" type="time" required />
-        </label>
-        <label class="form-field">
-          <span>Duration (minutes)</span>
-          <input id="lessonDuration" type="number" min="15" step="5" value="60" required />
-        </label>
-        <label class="form-field">
-          <span>Lesson type</span>
-          <select id="lessonType">
-            <option value="Class">Class</option>
-            <option value="One-on-one">One-on-one</option>
-            <option value="Planning">Planning</option>
-          </select>
-        </label>
-        <label class="form-field full-width">
-          <span>Learner or group</span>
-          <input id="lessonLearner" placeholder="e.g., Leadership Chinese / Grade 3" />
-        </label>
-        <label class="form-field full-width">
-          <span>Learning objective</span>
-          <textarea id="lessonObjective" rows="3" placeholder="What should the learner be able to do by the end?"></textarea>
-        </label>
-        <label class="form-field full-width">
-          <span>Notes</span>
-          <textarea id="lessonNotes" rows="3" placeholder="Activities, homework, follow-up, or reminders"></textarea>
-        </label>
-        <label class="form-field full-width">
-          <span>Material link</span>
-          <input id="lessonMaterialUrl" type="url" placeholder="https://…" />
-        </label>
+        <label class="form-field full-width"><span>Lesson title</span><input id="lessonTitle" required /></label>
+        <label class="form-field"><span>Date</span><input id="lessonDate" type="date" required /></label>
+        <label class="form-field"><span>Start time</span><input id="lessonTime" type="time" required /></label>
+        <label class="form-field"><span>Duration (minutes)</span><input id="lessonDuration" type="number" min="15" step="5" value="60" required /></label>
+        <label class="form-field"><span>Lesson type</span><select id="lessonType"><option>Class</option><option>One-on-one</option><option>Planning</option></select></label>
+        <label class="form-field full-width"><span>Learner or group</span><input id="lessonLearner" /></label>
+        <label class="form-field full-width"><span>Learning objective</span><textarea id="lessonObjective" rows="3"></textarea></label>
+        <label class="form-field full-width"><span>Notes</span><textarea id="lessonNotes" rows="3"></textarea></label>
+        <label class="form-field full-width"><span>Material link</span><input id="lessonMaterialUrl" type="url" placeholder="https://…" /></label>
       </div>
-
-      <div class="modal-actions">
-        <button class="button button-danger hidden" type="button" id="deleteLessonButton">Delete</button>
-        <div class="modal-actions-right">
-          <button class="button button-secondary" type="button" data-close-dialog>Cancel</button>
-          <button class="button button-primary" type="submit" value="default">Save lesson</button>
-        </div>
-      </div>
+      <div class="modal-actions"><button class="button button-danger hidden" type="button" id="deleteLessonButton">Delete</button><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save lesson</button></div></div>
     </form>
   </dialog>
 
-  <dialog id="materialDialog" class="modal modal-small">
+  <dialog id="materialDialog" class="modal">
     <form method="dialog" id="materialForm">
-      <div class="modal-header">
-        <div>
-          <span class="eyebrow">Resource</span>
-          <h3>Add material</h3>
-        </div>
-        <button class="close-button" type="button" data-close-dialog aria-label="Close">×</button>
-      </div>
+      <div class="modal-header"><div><span class="eyebrow">Library resource</span><h3>Add resource</h3></div><button class="close-button" type="button" data-close-dialog>×</button></div>
       <div class="form-grid">
-        <label class="form-field full-width">
-          <span>Title</span>
-          <input id="materialTitle" required placeholder="e.g., Unit 1 greeting slides" />
-        </label>
-        <label class="form-field">
-          <span>Type</span>
-          <select id="materialType">
-            <option>Slides</option>
-            <option>Worksheet</option>
-            <option>Drive</option>
-            <option>Website</option>
-            <option>Video</option>
-            <option>Other</option>
-          </select>
-        </label>
-        <label class="form-field">
-          <span>Unit or learner</span>
-          <input id="materialTag" placeholder="e.g., Unit 1" />
-        </label>
-        <label class="form-field full-width">
-          <span>Link</span>
-          <input id="materialUrl" type="url" required placeholder="https://…" />
-        </label>
-        <label class="form-field full-width">
-          <span>Notes</span>
-          <textarea id="materialNotes" rows="3" placeholder="How or when to use this resource"></textarea>
-        </label>
+        <label class="form-field full-width"><span>Title</span><input id="materialTitle" required /></label>
+        <label class="form-field"><span>Type</span><select id="materialType"><option>Slides</option><option>Worksheet</option><option>Drive</option><option>Website</option><option>Video</option><option>Other</option></select></label>
+        <label class="form-field"><span>Grade</span><input id="materialGrade" /></label>
+        <label class="form-field"><span>Skill</span><input id="materialSkill" placeholder="Reading, Speaking…" /></label>
+        <label class="form-field"><span>Topic</span><input id="materialTopic" /></label>
+        <label class="form-field"><span>Unit / learner</span><input id="materialUnit" /></label>
+        <label class="form-field"><span>Tags</span><input id="materialTags" placeholder="game, vocabulary" /></label>
+        <label class="form-field full-width"><span>Link</span><input id="materialUrl" type="url" placeholder="https://…" /></label>
+        <label class="form-field full-width"><span>Notes</span><textarea id="materialNotes" rows="3"></textarea></label>
       </div>
-      <div class="modal-actions">
-        <span></span>
-        <div class="modal-actions-right">
-          <button class="button button-secondary" type="button" data-close-dialog>Cancel</button>
-          <button class="button button-primary" type="submit" value="default">Save material</button>
-        </div>
-      </div>
+      <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Save resource</button></div></div>
     </form>
   </dialog>
 
   <dialog id="bumpDialog" class="modal modal-small">
     <form method="dialog" id="bumpForm">
-      <div class="modal-header">
-        <div>
-          <span class="eyebrow">Dynamic rescheduling</span>
-          <h3>Bump this lesson</h3>
-        </div>
-        <button class="close-button" type="button" data-close-dialog aria-label="Close">×</button>
-      </div>
-      <p class="modal-copy">Move this lesson and every later lesson in the same teaching sequence forward.</p>
+      <div class="modal-header"><div><span class="eyebrow">Dynamic rescheduling</span><h3>Bump this sequence</h3></div><button class="close-button" type="button" data-close-dialog>×</button></div>
+      <p class="modal-copy" id="bumpImpactText">Checking affected lessons…</p>
       <input type="hidden" id="bumpLessonId" />
       <div class="form-grid">
-        <label class="form-field full-width">
-          <span>Move forward by</span>
-          <select id="bumpDays">
-            <option value="1">1 day</option>
-            <option value="2">2 days</option>
-            <option value="3">3 days</option>
-            <option value="7">1 week</option>
-          </select>
-        </label>
-        <label class="checkbox-field full-width">
-          <input type="checkbox" id="skipWeekends" checked />
-          <span>Skip Saturday and Sunday when shifting weekday lessons</span>
-        </label>
+        <label class="form-field full-width"><span>Move forward by</span><select id="bumpDays"><option value="1">1 day</option><option value="2">2 days</option><option value="3">3 days</option><option value="7">1 week</option></select></label>
+        <label class="checkbox-field full-width"><input type="checkbox" id="skipWeekends" checked /><span>Skip Saturday and Sunday</span></label>
       </div>
-      <div class="modal-actions">
-        <span></span>
-        <div class="modal-actions-right">
-          <button class="button button-secondary" type="button" data-close-dialog>Cancel</button>
-          <button class="button button-primary" type="submit" value="default">Bump schedule</button>
-        </div>
-      </div>
+      <div class="modal-actions"><span></span><div class="modal-actions-right"><button class="button button-secondary" type="button" data-close-dialog>Cancel</button><button class="button button-primary" type="submit">Confirm bump</button></div></div>
     </form>
   </dialog>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button id="toastAction" class="toast-action hidden"></button></div>
 
-  <script src="app-sprint2a-hotfix.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+  <script src="app-v2a3.js"></script>
 </body>
 </html>

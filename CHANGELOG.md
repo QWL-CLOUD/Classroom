@@ -1,19 +1,9 @@
 # Changelog
 
-## Sprint 2A — Import Center and Safety Patch
-
-- Removed personalized starter records from the public source code.
-- Added persistent Undo Last Bump.
-- Added Bump impact preview and confirmation.
-- Added local JSON backup restore.
-- Added Import Center for Excel, CSV, JSON, and ICS.
-- Added automatic category detection and bilingual field aliases.
-- Added configurable field mapping.
-- Added data validation and duplicate detection.
-- Added add, merge, and replace import modes.
-- Added confirmation before category replacement.
-- Added import history, import source metadata, and undo last import.
-- Added blank CSV template downloads.
-- Added calendar-event display in the weekly planner.
-- Expanded Library classification with grade, skill, topic, and tags.
-- Added local data inventory counts for future Search, Automation, and Teaching Memory sprints.
+## Sprint 2A.3 — Corrected build
+- Replaced the accidentally re-packaged Sprint 1 files.
+- Added a visible Import Center navigation item and functional local import workflow.
+- Added persistent Undo last bump and post-bump toast action.
+- Added Bump impact confirmation and manual-edit protection during undo.
+- Added Library classification fields and filters.
+- Added versioned CSS/JS filenames to prevent GitHub Pages cache mixing.
