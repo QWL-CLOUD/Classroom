@@ -1,16 +1,13 @@
 # Changelog
 
-## v7 · Schedule Studio
-
-- Added four low-saturation Chinese-inspired color palettes.
-- Redesigned Today as an operational teaching dashboard.
-- Added a live vertical timeline whose past segment, current point, and daypart accent update with time.
-- Rebuilt Week as a Monday–Sunday time-axis calendar with nested blocks.
-- Added Sessions list/search view without creating a separate data silo.
-- Added robust local XLSX visual-schedule parsing with multi-sheet support and source-cell traceability.
-- Validated the importer against the uploaded 2026–2027 Master Schedule: 115 intervals detected.
-- Added recurring default schedule blocks and date-specific exceptions.
-- Added schedule edit scope: occurrence, future, or full default.
-- Added schedule-aware lesson Bump and separate Undo controls.
-- Added deletable import data and removable import history.
-- Preserved existing local data through `classroomDataV1` normalization.
+## v8
+- Consolidated navigation and added logo-only collapsed mode.
+- Added dynamic greeting and Summer Break countdown.
+- Added functional Agenda and personal agenda items.
+- Connected calendar services to Today and Students to Notice.
+- Added learner-owned lesson-plan sequences and profile drawer.
+- Added weekday-scoped schedule edits.
+- Rebuilt Import Center for multi-file drag-and-drop and multi-destination imports.
+- Added conservative PDF/image reference intake and DOCX/PPTX text extraction.
+- Fixed import selection controls so deselection does not reset the scroll position.
+- Kept Auto-detect independent for each queued file, so a prior Schedule import no longer forces later Calendar or Playbook files into Schedule.

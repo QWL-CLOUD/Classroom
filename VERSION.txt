@@ -1,4 +1,1 @@
-Classroom Schedule Studio v7
-Designed by: Alyssa × ChatGPT
-Primary test workbook: 2026-2027 Master Schedule(2).xlsx
-Detected test intervals: 115
+Classroom Workspace Consolidation v8
