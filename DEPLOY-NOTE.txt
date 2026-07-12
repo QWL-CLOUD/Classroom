@@ -1,0 +1,9 @@
+Classroom v15.1 · Schedule Time Fix
+
+Fixes:
+- Excel time-only cells now preserve the wall-clock time entered in Excel.
+- Import preview rounds duration_minutes to whole minutes.
+- Spreadsheet date cells preserve their local calendar date.
+
+Upload the CONTENTS of this folder to the GitHub repository root.
+Do not upload private schedule spreadsheets to the public repository.
