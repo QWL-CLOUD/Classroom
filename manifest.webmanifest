@@ -1,11 +1,12 @@
 {
-  "name": "Classroom",
+  "name": "Classroom — Stability & Cleanup",
   "short_name": "Classroom",
-  "description": "Private-first teaching planning workspace",
+  "description": "Private-first connected teaching planning workspace",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F5F3EE",
   "theme_color": "#334B4F",
+  "version": "18.0.0",
   "icons": []
 }

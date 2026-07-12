@@ -1,9 +1,3 @@
-Classroom Linked Workspace v9.0
-Build date: 2026-07-11
-
-Core flow:
-Today Schedule -> Edit Daily Schedule / Open Daily Planning
-Today To-do <-> Tasks
-Today Reminders <-> Classroom Calendar -> Google Calendar handoff
-Learner list -> Learner Record -> Profile / Lesson Plans / Planning Sessions / Teaching Memory / Services
-Week -> card-based Monday-Sunday planning view
+Classroom 18.0.0
+Release: Stability & Cleanup
+Build date: 2026-07-12
