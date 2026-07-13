@@ -1,0 +1,24 @@
+# Classroom v19 deployment checklist
+
+- [ ] Download a full Classroom backup from Settings.
+- [ ] Confirm the repository still contains `assets/index-B58euost.js`.
+- [ ] Confirm the repository still contains `assets/index-e2xDAz5w.css`.
+- [ ] Replace root `index.html`.
+- [ ] Upload `v19/v19-preload.js`.
+- [ ] Upload `v19/v19-enhancements.js`.
+- [ ] Upload `v19/v19.css`.
+- [ ] Replace `manifest.webmanifest`.
+- [ ] Replace `version.json`.
+- [ ] Commit to `main`.
+- [ ] Open the GitHub Pages site and hard refresh.
+- [ ] Confirm Teaching Insights appears under Workspace.
+- [ ] Confirm CLA appears under Resources.
+- [ ] Confirm System Health appears under System.
+- [ ] Confirm CLA shows only Level Learning and STAMP-related Skills.
+- [ ] Confirm browser Back/Forward works between pages.
+- [ ] Confirm View in Week opens the correct week without manual reload.
+- [ ] Confirm Bump opens a preview before changing records.
+- [ ] Confirm the post-Bump Undo action restores the original dates.
+- [ ] Confirm parent/child schedule cards remain readable at narrow widths.
+- [ ] Run the live page connection test.
+- [ ] Complete the 27-event PDF calendar acceptance report.

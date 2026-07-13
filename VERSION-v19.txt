@@ -1,0 +1,14 @@
+Classroom v19.0.0
+Release: Workflow & Navigation
+Base build: Classroom v18.0.0 · Stability & Cleanup
+Prepared: 2026-07-12
+
+CLA sources included:
+- Level Learning
+- STAMP-related Skills
+
+Not included:
+- School Standards
+- District Standards
+- State Standards
+- Future Standards
