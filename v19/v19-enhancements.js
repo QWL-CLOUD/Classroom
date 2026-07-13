@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.2';
-  const RELEASE_LABEL = 'v19.4.2 · Week Header & Template Repair';
+  const VERSION = '19.4.4';
+  const RELEASE_LABEL = 'v19.4.4 · Week Controls & Draft Status';
   const ROUTES = {
     today: { label: 'Today', path: 'today', aliases: ['Today', 'Today workspace', 'Home'] },
     week: { label: 'Week', path: 'week', aliases: ['Week', 'Weekly planner', 'Week workspace'] },
@@ -1573,6 +1573,25 @@
     };
     const activeLunarNames = [events, lessons, readJSON('cos-materials', []), readJSON('cos-toolkit', []), templates, notices]
       .flat().filter(containsActiveLunarName).length;
+    const weekHeader = document.querySelector('.week-workspace [data-v1942-week-header]');
+    const weekHeaderSelect = weekHeader?.querySelector('[data-v1942-week-filter]');
+    const weekHeaderWeekend = weekHeader?.querySelector('[data-v1942-weekends]');
+    const nativeWeekSelectControl = [...document.querySelectorAll('.week-workspace select')].find((node) => !node.closest('[data-v1942-week-header]')) || null;
+    const nativeWeekendControl = [...document.querySelectorAll('.week-workspace input[type="checkbox"]')].find((node) => !node.closest('[data-v1942-week-header]') && /weekend/i.test(text(node.closest('label') || node.parentElement))) || null;
+    const weekHeaderControlsConnected = document.documentElement.dataset.v1943WeekControls === 'true'
+      || Boolean(weekHeaderSelect && weekHeaderWeekend && nativeWeekSelectControl && nativeWeekendControl && weekHeader?.dataset.controlsReady === 'true');
+    const draftProbe = (() => {
+      const host = document.createElement('div');
+      host.className = 'week-workspace';
+      host.style.cssText = 'position:fixed;left:-9999px;top:-9999px;visibility:hidden';
+      host.innerHTML = '<span class="status-chip v19-derived-week-status" data-v19-derived-status="ready">Ready</span><span class="status-chip v19-derived-week-status" data-v19-derived-status="draft">Draft</span>';
+      document.body.appendChild(host);
+      const nodes = host.querySelectorAll('.status-chip');
+      const ready = nodes[0] ? getComputedStyle(nodes[0]).backgroundColor : '';
+      const draft = nodes[1] ? getComputedStyle(nodes[1]).backgroundColor : '';
+      host.remove();
+      return { ready, draft, matches: Boolean(ready && draft && ready === draft) };
+    })();
 
     const parsedRoute = parseHash();
     const routeWeekDate = currentWeekSnapshot?.routeWeekDate || savedWeekSnapshot?.routeWeekDate || (parsedRoute.path === 'week' ? parsedRoute.params.get('date') || '' : '');
@@ -1615,6 +1634,8 @@
       { name: 'Week cards have canonical dates', status: !weekSnapshotAvailable ? 'warning' : emptyWeekCardDates ? 'fail' : distinctWeekDates < 5 ? 'warning' : 'pass', detail: weekSnapshotAvailable ? `${distinctWeekDates} distinct day date(s) · ${emptyWeekCardDates} card(s) without a date` : 'Run the live page test to capture Week dates' },
       { name: 'Bump uses safe single-lesson scope', status: 'pass', detail: `Implicit schedule-block series shifting disabled · ${implicitSeriesRisk} record(s) protected from accidental grouping` },
       { name: 'Week cards use stable Schedule Block IDs', status: !weekSnapshotAvailable ? 'warning' : weekCardsMissingStableBlock ? 'fail' : unresolvedLessonBlockLinks ? 'fail' : 'pass', detail: !weekSnapshotAvailable ? 'Run the live page test to capture Schedule Block links' : `${weekCardsMissingStableBlock} mounted card(s) without a stable Block ID · ${unresolvedLessonBlockLinks} lesson link(s) unresolved` },
+      { name: 'Week View and Weekends controls are connected', status: weekSnapshotAvailable ? (weekHeaderControlsConnected ? 'pass' : 'fail') : 'warning', detail: weekSnapshotAvailable ? (weekHeaderControlsConnected ? 'Custom controls are linked to the native React controls' : 'One or more native Week controls could not be linked') : 'Open Week and run the live page test' },
+      { name: 'Draft status keeps planned styling', status: draftProbe.matches ? 'pass' : 'fail', detail: draftProbe.matches ? `Draft and Ready use the same planned-state color (${draftProbe.draft})` : `Ready ${draftProbe.ready || 'none'} · Draft ${draftProbe.draft || 'none'}` },
       { name: 'Planning templates are structurally valid', status: invalidTemplateParents || invalidTemplateFlows ? 'fail' : 'pass', detail: `${templates.length} template(s) · ${invalidTemplateParents} invalid Parent Block link(s) · ${invalidTemplateFlows} invalid flow structure(s)` },
       { name: 'Learner notices use valid date ranges', status: invalidNoticeDates ? 'fail' : 'pass', detail: `${notices.length} notice(s) · ${invalidNoticeDates} invalid date range(s)` },
       { name: 'Chinese New Year naming is consistent', status: activeLunarNames ? 'warning' : 'pass', detail: `${activeLunarNames} active record(s) still use Lunar New Year` },
@@ -2760,7 +2781,7 @@
         routeBootstrapPending = false;
         syncHashFromActiveNav();
       }, 360);
-      document.documentElement.dataset.classroomVersion = '19.4.2';
+      document.documentElement.dataset.classroomVersion = '19.4.4';
       console.info(`Classroom v${VERSION} lesson and learner workflow loaded.`);
     }, 60);
   }

@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.2';
+  const VERSION = '19.4.4';
   const KEYS = {
     templates: 'cos-planning-templates-v19',
     notices: 'cos-learner-notices-v19',
@@ -384,6 +384,43 @@
       return /show weekends|weekends/i.test(text(label || input.parentElement));
     }) || null;
   }
+  function setReactControlValue(control, value) {
+    if (!control) return false;
+    const prototype = control instanceof HTMLSelectElement
+      ? HTMLSelectElement.prototype
+      : control instanceof HTMLInputElement
+        ? HTMLInputElement.prototype
+        : Object.getPrototypeOf(control);
+    const descriptor = Object.getOwnPropertyDescriptor(prototype, 'value');
+    try {
+      if (descriptor?.set) descriptor.set.call(control, value);
+      else control.value = value;
+    } catch { control.value = value; }
+    control.dispatchEvent(new Event('input', { bubbles:true }));
+    control.dispatchEvent(new Event('change', { bubbles:true }));
+    return String(control.value) === String(value);
+  }
+  function setReactCheckbox(control, checked) {
+    if (!control) return false;
+    const desired = Boolean(checked);
+    if (control.checked === desired) return true;
+    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'checked');
+    try {
+      // Put the native control in the opposite state, then let a real click
+      // perform the final toggle. React's checkbox onChange listens to click.
+      if (descriptor?.set) descriptor.set.call(control, !desired);
+      else control.checked = !desired;
+      control.click();
+    } catch {
+      try {
+        if (descriptor?.set) descriptor.set.call(control, desired);
+        else control.checked = desired;
+      } catch { control.checked = desired; }
+      control.dispatchEvent(new Event('input', { bubbles:true }));
+      control.dispatchEvent(new Event('change', { bubbles:true }));
+    }
+    return control.checked === desired;
+  }
   function weekDateRangeLabel(week) {
     const routeStart = diagnostics().visibleWeekAnchorDate?.() || diagnostics().visibleWeekRouteDate?.() || '';
     if (validDate(routeStart)) {
@@ -435,13 +472,28 @@
       panel.querySelector('[data-v1942-week-action="next"]').addEventListener('click', () => nativeWeekButton(week, /^next\b|›|→/i)?.click());
       panel.querySelector('[data-v1942-open-templates]').addEventListener('click', () => openTemplateManager(null));
       panel.querySelector('[data-v1942-week-filter]').addEventListener('change', (event) => {
-        const native = nativeWeekSelect(week); if (!native) return;
-        native.value = event.currentTarget.value;
-        native.dispatchEvent(new Event('change', { bubbles:true }));
+        const proxy = event.currentTarget;
+        const native = nativeWeekSelect(week);
+        if (!native) { proxy.setAttribute('aria-invalid', 'true'); return; }
+        proxy.removeAttribute('aria-invalid');
+        setReactControlValue(native, proxy.value);
+        window.setTimeout(() => {
+          const current = nativeWeekSelect(week);
+          if (current && String(current.value) !== String(proxy.value)) setReactControlValue(current, proxy.value);
+          scheduleMaintenance();
+        }, 40);
       });
       panel.querySelector('[data-v1942-weekends]').addEventListener('change', (event) => {
-        const native = nativeWeekendCheckbox(week); if (!native) return;
-        if (native.checked !== event.currentTarget.checked) native.click();
+        const proxy = event.currentTarget;
+        const native = nativeWeekendCheckbox(week);
+        if (!native) { proxy.setAttribute('aria-invalid', 'true'); return; }
+        proxy.removeAttribute('aria-invalid');
+        setReactCheckbox(native, proxy.checked);
+        window.setTimeout(() => {
+          const current = nativeWeekendCheckbox(week);
+          if (current && current.checked !== proxy.checked) setReactCheckbox(current, proxy.checked);
+          scheduleMaintenance();
+        }, 40);
       });
     }
 
@@ -459,20 +511,29 @@
         proxySelect.dataset.optionsSignature = signature;
       }
       proxySelect.value = sourceSelect.value;
+      proxySelect.disabled = false;
+      proxySelect.removeAttribute('aria-invalid');
       hideNativeWeekControl(sourceSelect.closest('label') || sourceSelect.parentElement);
+    } else if (proxySelect) {
+      proxySelect.disabled = true;
+      proxySelect.setAttribute('aria-invalid', 'true');
     }
     const sourceWeekend = nativeWeekendCheckbox(week);
     const proxyWeekend = panel.querySelector('[data-v1942-weekends]');
     if (sourceWeekend && proxyWeekend) {
       proxyWeekend.checked = sourceWeekend.checked;
+      proxyWeekend.disabled = false;
+      proxyWeekend.removeAttribute('aria-invalid');
       hideNativeWeekControl(sourceWeekend.closest('label') || sourceWeekend.parentElement);
+    } else if (proxyWeekend) {
+      proxyWeekend.disabled = true;
+      proxyWeekend.setAttribute('aria-invalid', 'true');
     }
 
     const heading = [...week.querySelectorAll('h1,h2')].find((node) => !node.closest('[data-v1942-week-header]') && /^week$/i.test(text(node)));
     if (heading) {
-      const shell = heading.parentElement;
-      if (shell && shell.querySelectorAll('button,select,input').length === 0) hideNativeWeekControl(shell);
-      else hideNativeWeekControl(heading);
+      const nativeHeader = heading.closest('.page-header') || heading.parentElement;
+      hideNativeWeekControl(nativeHeader);
     }
     const navButtons = [
       nativeWeekButton(week, /^(previous|prev)\b|‹|←/i),
@@ -481,7 +542,11 @@
     ].filter(Boolean);
     const navParent = navButtons.length === 3 && navButtons.every((button) => button.parentElement === navButtons[0].parentElement) ? navButtons[0].parentElement : null;
     if (navParent) hideNativeWeekControl(navParent); else navButtons.forEach((button) => hideNativeWeekControl(button));
+    const nativeToolbar = week.querySelector('.week-toolbar');
+    if (nativeToolbar) hideNativeWeekControl(nativeToolbar);
+    panel.dataset.controlsReady = String(Boolean(sourceSelect && sourceWeekend));
     document.documentElement.dataset.v1942WeekHeader = 'true';
+    document.documentElement.dataset.v1943WeekControls = panel.dataset.controlsReady;
   }
   function installTemplateControls() {
     document.querySelectorAll('.planning-editor .v19-flow-editor').forEach((shell) => {
@@ -650,10 +715,10 @@
 
   function scheduleMaintenance(){if(maintenanceQueued)return;maintenanceQueued=true;requestAnimationFrame(()=>{maintenanceQueued=false;maintain()})}
   function maintain(){decorateStableBlockLinks();installTemplateControls();installFlowDragAndCollapse();installLearnerSupportTab();renderTodayNotices()}
-  function start(){migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.2';console.info('Classroom v19.4.2 Week Header & Templates loaded.')},60)}
+  function start(){migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.4';console.info('Classroom v19.4.4 Week Controls & Draft Status loaded.')},60)}
 
   window.ClassroomV19WorkflowDiagnostics={
-    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader
+    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

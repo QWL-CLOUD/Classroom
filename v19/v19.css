@@ -1864,7 +1864,8 @@ button.v19-metric {
 }
 
 .week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="ready"],
-.week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="planned"] {
+.week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="planned"],
+.week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="draft"] {
   background: #dfeadd !important;
   color: #4d694c !important;
   border-color: rgba(77, 105, 76, .12) !important;
@@ -1942,7 +1943,7 @@ button.v19-metric {
 .v194-today-empty{margin:0;color:var(--v19-muted);font-size:13px}
 @media(max-width:760px){.v194-form-grid{grid-template-columns:1fr}.v194-form-grid label.wide,.v194-form-grid .wide{grid-column:auto}.v194-template-card,.v194-support-header{align-items:stretch;flex-direction:column}.v194-notice-card{grid-template-columns:1fr}.v194-notice-actions{justify-content:flex-start}.v194-today-notice{grid-template-columns:1fr}}
 
-/* Classroom v19.4.2 — Week Header & Template Repair */
+/* Classroom v19.4.4 — Week Controls, Spacing & Draft Status */
 .v19-modal-overlay {
   position: fixed;
   inset: 0;
@@ -1961,7 +1962,7 @@ button.v19-metric {
 .week-workspace > .v1942-week-header {
   display: grid;
   gap: 14px;
-  margin: 2px 0 18px;
+  margin: 2px 0 8px;
   padding: 18px 20px 16px;
   border: 1px solid rgba(51, 75, 79, 0.12);
   border-radius: 18px;
@@ -2177,4 +2178,49 @@ button.v19-metric {
   .v1942-week-nav button span { display: none; }
   .v1942-week-tools { align-items: stretch; flex-direction: column; }
   .v1942-weekend-toggle, .v1942-template-launcher { justify-content: center; }
+}
+
+
+/* v19.4.4: remove residual native header/toolbar space after the compact header is installed. */
+.week-workspace > .v1942-week-header + .v1942-native-week-control,
+.week-workspace > .v1942-native-week-control,
+.week-workspace .week-toolbar.v1942-native-week-control {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+}
+
+.week-workspace > .week-grid {
+  margin-top: 0 !important;
+}
+
+.v1942-week-filter select:disabled,
+.v1942-weekend-toggle input:disabled + .track {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.v194-template-reuse {
+  align-items: flex-start !important;
+}
+
+.v194-template-reuse > span {
+  display: grid;
+  gap: 3px;
+}
+
+.v194-template-reuse small {
+  color: var(--v19-muted);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+/* Draft remains a planned state after Bump, Undo, and Redo. */
+.week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="draft"] {
+  background: #dfeadd !important;
+  color: #4d694c !important;
+  border-color: rgba(77, 105, 76, .12) !important;
 }
