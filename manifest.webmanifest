@@ -1,12 +1,12 @@
 {
-  "name": "Classroom v19.4.2 \u00b7 Week Header & Template Repair",
-  "short_name": "Classroom v19.4.2",
-  "description": "A compact Week header, working lesson-template dialogs, recurring Schedule Block links, and safer diagnostics.",
+  "name": "Classroom v19.4.4 · Week Controls & Draft Status",
+  "short_name": "Classroom v19.4.4",
+  "description": "Reliable Week View and Weekends controls, tighter Week spacing, and stable Draft colors after Bump and history restores.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F5F3EE",
   "theme_color": "#334B4F",
-  "version": "19.4.2",
+  "version": "19.4.4",
   "icons": []
 }
