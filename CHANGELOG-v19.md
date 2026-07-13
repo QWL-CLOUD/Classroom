@@ -1,41 +1,47 @@
-# Classroom v19 — Workflow & Navigation
+# Classroom v19.2A — Navigation & Week Stability
 
-## Added
+Release date: 2026-07-13  
+Version: 19.2.0
 
-- Hash-based URL routes for the main workspace pages and custom v19 pages.
-- Browser Back and Forward support.
-- Global **Teaching Insights** page for Reflection, Memory, and Next Steps.
-- CLA page containing only **Level Learning** and **STAMP-related Skills**.
-- Icon-only Undo and Redo controls in the top search area.
-- Bump buttons for scheduled learner-planning records.
-- Bump preview with connected-record count, date movement preview, holiday/closure avoidance for the final date, and immediate Undo after completion.
-- Dedicated workflow and calendar acceptance page.
-- Dynamic 27-event PDF calendar acceptance report and JSON export.
-- Live in-app navigation acceptance test for Calendar, Week, and Today.
+## Navigation
 
-## Changed
+- Converts Learners into one direct sidebar destination.
+- Removes the duplicate Learners child navigation from view.
+- Converts Library into one direct sidebar destination.
+- Removes Library child navigation from view.
+- Preserves the original hidden native destination as the page-opening bridge, so existing React navigation continues to work.
 
-- “Classes, Groups & Individuals” is displayed as **Learners**.
-- Lesson-plan activity sequence is displayed as **Lesson Flow Editor**.
-- Attached activity counts are displayed as **flow blocks** inside planning records.
-- Parent and child schedule blocks have clearer indentation, connectors, spacing, and long-title handling.
-- “View in Week” writes route/date state and highlights the matching Week card without requiring a manual reload.
+## Route registry and System Health
 
-## Fixed / guarded
+- Adds one shared route registry for Today, Week, Tasks, Learners, Library, Calendar, Import, Export, and Settings.
+- Recognizes current and legacy page labels through stable aliases.
+- Stops System Health from relying on one exact DOM label.
+- Reports each required route as registered or missing.
+- Fixes the reported `Missing: Today, Week, Tasks` false failure when those pages exist.
 
-- Date validation uses local noon calendar parsing instead of UTC conversion, preventing timezone-related all-day date false positives.
-- Event ranges, malformed times, duplicate event signatures, invalid session dates, and orphan parent/child links are reported separately.
-- Undo/Redo captures changes to Classroom `cos-*` data stores while excluding visual preference and navigation-only keys.
+## Week cards
 
-## CLA scope
+- Adds a stable Week-card layout layer.
+- Reserves a real upper-right action rail.
+- Prevents long card titles from covering status and action controls.
+- Converts child flow rows to a compact two-column layout: time on the left, title and status on the right.
+- Adds responsive behavior for narrow multi-column Week views.
 
-Only these two sources are shown:
+## Bump
 
-1. Level Learning
-2. STAMP-related Skills
+- Replaces the large labeled Bump control with a 30 × 30 shift-forward icon.
+- Places the icon in the Week card’s upper-right action area.
+- Stops click propagation before the card’s native navigation handler runs.
+- Keeps the current Week route after preview and confirmation.
+- Preserves the current scroll position while the updated lesson records are rendered.
+- Continues to use the existing Bump preview, conflict checks, blocked-date logic, and Undo history.
 
-No placeholder categories are created for school, district, state, or future standards.
+## Stability
 
-## Implementation note
+- Prevents duplicate action rails from being appended during repeated enhancement passes.
+- Avoids rewriting the Bump SVG on every mutation cycle.
+- Dispatches a data-change event after local lesson writes so the existing app can refresh without a forced route change.
 
-v19 is a compatibility layer over the current v18 production build. It reuses the existing local data records and does not create a parallel database.
+## Compatibility
+
+v19.2A remains a compatibility layer over the current v18 production bundle. It reuses the current `cos-*` data and does not create a parallel database.
