@@ -236,6 +236,7 @@
     );
     const route = window.location.hash || '#/today';
     sessionStorage.setItem('classroom-v19-return-route', route);
+    sessionStorage.setItem('classroom-v19-return-scroll', JSON.stringify({ x: window.scrollX, y: window.scrollY }));
     window.setTimeout(() => window.location.reload(), 45);
   }
 

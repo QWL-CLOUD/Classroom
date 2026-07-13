@@ -1286,3 +1286,179 @@ button.v19-metric {
     margin-left: calc(min(var(--flow-depth), 2) * 12px);
   }
 }
+
+
+/* Classroom v19.2A — Navigation & Week Stability */
+.v19-learners-nav-group > .nav-section-toggle,
+.v19-learners-nav-group > .secondary-nav,
+.v19-library-nav-group > .nav-section-toggle,
+.v19-library-nav-group > .secondary-nav {
+  display: none !important;
+}
+
+.v19-direct-nav,
+.v19-learners-nav-group-direct,
+.v19-library-nav-group-direct {
+  width: 100%;
+}
+
+/* Week cards: reserve a real top-right action rail and prevent content overlap. */
+.week-workspace .v19-week-card {
+  position: relative !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  isolation: isolate;
+}
+
+.week-workspace .v19-week-card-head {
+  position: relative !important;
+  min-width: 0 !important;
+  padding-right: 68px !important;
+}
+
+.week-workspace .v19-week-card-title,
+.week-workspace .v19-week-card h2,
+.week-workspace .v19-week-card h3,
+.week-workspace .v19-week-card h4 {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow-wrap: anywhere;
+  text-overflow: ellipsis;
+}
+
+.week-workspace .v19-week-card-actions {
+  position: absolute !important;
+  top: 9px !important;
+  right: 9px !important;
+  z-index: 8;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 3px;
+  width: auto !important;
+  margin: 0 !important;
+}
+
+.v19-bump-icon-button {
+  appearance: none;
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  display: inline-grid !important;
+  place-items: center;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: 1px solid rgba(51,75,79,.14) !important;
+  border-radius: 9px !important;
+  background: rgba(255,255,255,.92) !important;
+  color: var(--v19-accent) !important;
+  box-shadow: 0 2px 8px rgba(35,54,56,.07);
+  cursor: pointer;
+}
+
+.v19-bump-icon-button:hover {
+  background: var(--v19-accent-soft) !important;
+  border-color: rgba(51,75,79,.28) !important;
+}
+
+.v19-bump-icon-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+/* Remove v19.1's large labeled Bump treatment wherever an old button survives. */
+.week-workspace .v19-bump-button {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  padding: 0 !important;
+  overflow: hidden;
+  border-radius: 9px !important;
+}
+.week-workspace .v19-bump-button > span:last-child { display: none !important; }
+
+/* A compact two-column flow row: time on the left, title/status stacked on the right. */
+.week-workspace .v19-week-flow-row {
+  display: grid !important;
+  grid-template-columns: minmax(86px, 43%) minmax(0, 1fr) !important;
+  grid-template-rows: auto auto !important;
+  align-items: start !important;
+  column-gap: 10px !important;
+  row-gap: 2px !important;
+  min-width: 0 !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+
+.week-workspace .v19-week-flow-row > * {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.week-workspace .v19-week-flow-time {
+  grid-column: 1 !important;
+  grid-row: 1 / span 2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.week-workspace .v19-week-flow-title {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  display: block !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  line-height: 1.2 !important;
+  font-weight: 700 !important;
+}
+
+.week-workspace .v19-week-flow-status {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  justify-self: start !important;
+  display: inline-flex !important;
+  max-width: 100% !important;
+  padding: 1px 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--v19-muted) !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.week-workspace .v19-week-status:not(.v19-week-flow-status) {
+  max-width: calc(100% - 8px) !important;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .week-workspace .v19-week-flow-row {
+    grid-template-columns: minmax(78px, 42%) minmax(0, 1fr) !important;
+    column-gap: 8px !important;
+  }
+  .week-workspace .v19-week-card-head { padding-right: 62px !important; }
+}
+
+@media (max-width: 760px) {
+  .week-workspace .v19-week-flow-row {
+    grid-template-columns: 84px minmax(0, 1fr) !important;
+  }
+}
