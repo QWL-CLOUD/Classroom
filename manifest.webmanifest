@@ -1,12 +1,12 @@
 {
-  "name": "Classroom v19.4.4 · Week Controls & Draft Status",
-  "short_name": "Classroom v19.4.4",
-  "description": "Reliable Week View and Weekends controls, tighter Week spacing, and stable Draft colors after Bump and history restores.",
+  "name": "Classroom v19.4.5 \u00b7 Week Control Recovery",
+  "short_name": "Classroom v19.4.5",
+  "description": "Reliable enabled Week View and Weekends controls with native React reconnection, direct fallback behavior, stable Draft styling, and improved Schedule Block matching.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F5F3EE",
   "theme_color": "#334B4F",
-  "version": "19.4.4",
+  "version": "19.4.5",
   "icons": []
 }
