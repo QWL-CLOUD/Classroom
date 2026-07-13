@@ -1,12 +1,12 @@
 {
-  "name": "Classroom \u2014 Workflow Fixes",
-  "short_name": "Classroom",
-  "description": "Private-first connected teaching planning workspace",
+  "name": "Classroom v19.2A.1 \u00b7 Navigation & Week Hotfix",
+  "short_name": "Classroom v19.2A.1",
+  "description": "Navigation icon, Week layout, Bump routing, and Route Registry hotfix for Classroom.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F5F3EE",
   "theme_color": "#334B4F",
-  "version": "19.1.0",
+  "version": "19.2.1",
   "icons": []
 }
