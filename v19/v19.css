@@ -1855,3 +1855,24 @@ button.v19-metric {
   font-size: 10.5px !important;
   line-height: 1.15 !important;
 }
+
+/* Classroom v19.2A.4 — Route & Date Consistency */
+.week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="needs-plan"] {
+  background: #f3e7cc !important;
+  color: #8a672c !important;
+  border-color: rgba(151, 112, 48, .14) !important;
+}
+
+.week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="ready"],
+.week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="planned"] {
+  background: #dfeadd !important;
+  color: #4d694c !important;
+  border-color: rgba(77, 105, 76, .12) !important;
+}
+
+.week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="completed"],
+.week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="taught"] {
+  background: #e7ebed !important;
+  color: #5d686d !important;
+  border-color: rgba(93, 104, 109, .12) !important;
+}
