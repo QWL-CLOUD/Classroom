@@ -1876,3 +1876,22 @@ button.v19-metric {
   color: #5d686d !important;
   border-color: rgba(93, 104, 109, .12) !important;
 }
+
+
+/* v19.3 Core Stability */
+.v19-lesson-repair-table { display: grid; gap: 0; border: 1px solid rgba(51,75,79,.16); border-radius: 16px; overflow: hidden; }
+.v19-lesson-repair-row { display: grid; grid-template-columns: 110px minmax(180px,1.5fr) 100px minmax(150px,1fr) minmax(180px,auto); gap: 12px; align-items: center; padding: 12px 14px; background: #fff; border-top: 1px solid rgba(51,75,79,.1); }
+.v19-lesson-repair-row:first-child { border-top: 0; }
+.v19-lesson-repair-row.heading { background: #eef3f1; color: #5d6e70; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+.v19-lesson-repair-row small { display: block; color: #728083; margin-top: 3px; }
+.v19-lesson-repair-row code { font-size: 12px; overflow-wrap: anywhere; }
+.v19-lesson-repair-row > span:last-child { display: flex; gap: 8px; justify-content: flex-end; }
+.v19-secondary-button.compact, .v19-danger-button.compact { min-height: 34px; padding: 7px 10px; border-radius: 10px; font-size: 13px; }
+.v19-danger-button { border: 1px solid #d9b8b2; background: #fff7f5; color: #8d352d; font-weight: 700; cursor: pointer; }
+.v19-danger-button:hover { background: #fce9e5; }
+.week-workspace .v19-week-card[data-v19-stable-date] { contain: layout style; }
+@media (max-width: 900px) {
+  .v19-lesson-repair-row { grid-template-columns: 1fr; gap: 5px; }
+  .v19-lesson-repair-row.heading { display: none; }
+  .v19-lesson-repair-row > span:last-child { justify-content: flex-start; margin-top: 6px; }
+}

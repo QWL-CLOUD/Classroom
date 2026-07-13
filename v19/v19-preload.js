@@ -142,7 +142,7 @@
     try {
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(state));
     } catch (error) {
-      console.warn('Classroom v19 could not persist undo history.', error);
+      console.warn('Classroom v19.3 could not persist undo history.', error);
     }
     window.dispatchEvent(new CustomEvent('classroom:v19-history', { detail: getStatus() }));
   }

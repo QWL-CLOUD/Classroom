@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.2.5';
-  const RELEASE_LABEL = 'v19.2A.5 · Week Plan Date Binding & Diagnostics';
+  const VERSION = '19.3.0';
+  const RELEASE_LABEL = 'v19.3 · Core Stability';
   const ROUTES = {
     today: { label: 'Today', path: 'today', aliases: ['Today', 'Today workspace', 'Home'] },
     week: { label: 'Week', path: 'week', aliases: ['Week', 'Weekly planner', 'Week workspace'] },
@@ -141,6 +141,115 @@
     return toDateString(date);
   }
 
+
+  function weekStartDate(dateString) {
+    const date = localDate(dateString);
+    if (!date) return '';
+    date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+    return toDateString(date);
+  }
+
+  function lessonContextKey(lesson) {
+    if (!lesson) return '';
+    if (lesson.contextId) return `${lesson.contextType || 'context'}:${lesson.contextId}`;
+    if (lesson.classId) return `class:${lesson.classId}`;
+    if (lesson.groupId) return `group:${lesson.groupId}`;
+    if (lesson.learnerId || lesson.studentId) return `learner:${lesson.learnerId || lesson.studentId}`;
+    if (lesson.contextName) return `${lesson.contextType || 'context-name'}:${normalizeRouteToken(lesson.contextName)}`;
+    return '';
+  }
+
+  function meaningfulWords(value) {
+    const stop = new Set(['block', 'class', 'lesson', 'session', 'period', 'planned', 'ready', 'needs', 'plan', 'teaching']);
+    return normalizeRouteToken(value).split(' ').filter((word) => word.length > 1 && !stop.has(word));
+  }
+
+  function namesRepresentSameBlock(first, second) {
+    const a = meaningfulWords(first);
+    const b = meaningfulWords(second);
+    if (!a.length || !b.length) return false;
+    const aSet = new Set(a);
+    const bSet = new Set(b);
+    const shared = a.filter((word) => bSet.has(word)).length;
+    return shared >= Math.min(aSet.size, bSet.size) && shared >= 1;
+  }
+
+  function globalWeekHeaderDates(referenceDate = routeDateReference()) {
+    const week = document.querySelector('.week-workspace');
+    if (!week) return new Map();
+    const result = new Map();
+    const nodes = [week, ...week.querySelectorAll('header, h1, h2, h3, strong, span, div')];
+    nodes.forEach((node) => {
+      const value = text(node);
+      if (!value || value.length > 80) return;
+      const match = value.match(/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b[\s\S]{0,30}?\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})\b/i);
+      if (!match) return;
+      const reference = localDate(referenceDate) || new Date();
+      const month = V19_MONTHS[String(match[2]).toLowerCase().replace('.', '')];
+      const day = Number(match[3]);
+      const weekday = String(match[1]).toLowerCase();
+      const candidates = [reference.getFullYear() - 1, reference.getFullYear(), reference.getFullYear() + 1]
+        .map((year) => new Date(year, month, day, 12))
+        .filter((date) => date.getMonth() === month && date.getDate() === day && V19_WEEKDAYS[date.getDay()] === weekday)
+        .sort((a, b) => Math.abs(a - reference) - Math.abs(b - reference));
+      if (candidates[0] && !result.has(weekday)) result.set(weekday, toDateString(candidates[0]));
+    });
+    return result;
+  }
+
+  function stableWeekStart() {
+    const headers = globalWeekHeaderDates();
+    if (headers.has('monday')) return headers.get('monday');
+    const parsed = parseHash();
+    const routeDate = parsed.path === 'week' ? parsed.params.get('date') : '';
+    return weekStartDate(routeDate || readJSON('cos-focus-date', '') || toDateString(new Date()));
+  }
+
+  function groupWeekCardsByPosition(cards) {
+    const visible = cards.map((card, index) => {
+      const rect = card.getBoundingClientRect?.() || { left: 0, top: index, width: 0, height: 0 };
+      return { card, index, left: Math.round(rect.left), top: Math.round(rect.top), width: rect.width || 0 };
+    });
+    const leftValues = [];
+    visible.filter((item) => item.width > 0).sort((a, b) => a.left - b.left).forEach((item) => {
+      let group = leftValues.find((value) => Math.abs(value - item.left) <= 24);
+      if (group === undefined) leftValues.push(item.left);
+    });
+    leftValues.sort((a, b) => a - b);
+    if (leftValues.length >= 2 && leftValues.length <= 7) {
+      return visible.map((item) => ({ ...item, columnIndex: Math.max(0, leftValues.findIndex((value) => Math.abs(value - item.left) <= 24)) }));
+    }
+
+    // Stacked/mobile fallback: native DOM order is column-major. A sharp top
+    // reset indicates the next day column.
+    let columnIndex = 0;
+    let previousTop = -Infinity;
+    return visible.map((item, index) => {
+      if (index && item.top + 36 < previousTop) columnIndex += 1;
+      previousTop = item.top;
+      return { ...item, columnIndex: Math.min(columnIndex, 6) };
+    });
+  }
+
+  function stabilizeWeekLayout() {
+    const week = document.querySelector('.week-workspace');
+    const cards = weekCards();
+    if (!week || !cards.length) return { weekStart: '', columns: 0, cards: [] };
+    const weekStart = stableWeekStart();
+    if (!localDate(weekStart)) return { weekStart: '', columns: 0, cards: [] };
+    const grouped = groupWeekCardsByPosition(cards);
+    const columns = Math.max(0, ...grouped.map((item) => item.columnIndex)) + 1;
+    grouped.forEach(({ card, columnIndex }) => {
+      const date = addDays(weekStart, columnIndex);
+      card.dataset.v19StableColumn = String(columnIndex);
+      card.dataset.v19StableDate = date;
+      card.dataset.date = date;
+    });
+    week.dataset.v19WeekStart = weekStart;
+    week.dataset.v19StableColumns = String(columns);
+    return { weekStart, columns, cards: grouped };
+  }
+
   function median(values) {
     if (!values.length) return 7;
     const sorted = [...values].sort((a, b) => a - b);
@@ -258,17 +367,21 @@
   }
 
   function setHash(path, params = {}, replace = false) {
-    if (['week', 'today', 'calendar'].includes(path) && localDate(params.date)) {
-      setFocusDateSilently(params.date, `route:${path}`);
+    const routeParams = { ...params };
+    if (path === 'week' && localDate(routeParams.date)) {
+      const requestedDate = routeParams.date;
+      setFocusDateSilently(requestedDate, 'route:week-focus');
+      routeParams.date = weekStartDate(requestedDate);
+    } else if (['today', 'calendar'].includes(path) && localDate(routeParams.date)) {
+      setFocusDateSilently(routeParams.date, `route:${path}`);
     }
-    const next = buildHash(path, params);
+    const next = buildHash(path, routeParams);
     if (location.hash === next) return;
     routeLock = true;
     if (replace) history.replaceState({ classroomRoute: path }, '', next);
     else history.pushState({ classroomRoute: path }, '', next);
     window.setTimeout(() => { routeLock = false; }, 0);
   }
-
   function findNavButton(route) {
     registerNativeRoutes();
     const entry = routeRegistry.get(route.path);
@@ -675,9 +788,12 @@
 
   function currentLessons() {
     const year = currentSchoolYear();
-    return readJSON('cos-lessons', []).filter((lesson) => !year || !lesson.schoolYear || lesson.schoolYear === year);
+    return readJSON('cos-lessons', []).filter((lesson) => {
+      const archived = lesson.archived === true || normalizeRouteToken(lesson.status) === 'archived';
+      const yearMatch = !year || !lesson.schoolYear || lesson.schoolYear === year;
+      return !archived && yearMatch;
+    });
   }
-
   function insightRecords() {
     return currentLessons()
       .filter((lesson) => lesson.reflection || lesson.teachingMemory || lesson.nextStep)
@@ -1425,6 +1541,10 @@
     const savedWeekSnapshot = currentWeekSnapshot || storedWeekSnapshot();
     const weekActions = currentWeekSnapshot?.diagnostics || savedWeekSnapshot?.diagnostics || weekActionDiagnostics();
     const duplicateLessonIds = lessons.length - new Set(lessons.map((lesson) => String(lesson.id || ''))).size;
+    const snapshotCards = savedWeekSnapshot?.cards || [];
+    const emptyWeekCardDates = snapshotCards.filter((card) => !localDate(card.cardDate)).length;
+    const distinctWeekDates = new Set(snapshotCards.map((card) => card.cardDate).filter(localDate)).size;
+    const implicitSeriesRisk = lessons.filter((lesson) => lesson.scheduleBlockId && !lesson.seriesId && !lesson.planSeriesId).length;
     const parsedRoute = parseHash();
     const routeWeekDate = currentWeekSnapshot?.routeWeekDate || savedWeekSnapshot?.routeWeekDate || (parsedRoute.path === 'week' ? parsedRoute.params.get('date') || '' : '');
     const visibleWeekDate = currentWeekSnapshot?.visibleWeekDate || savedWeekSnapshot?.visibleWeekDate || visibleWeekAnchorDate();
@@ -1462,6 +1582,8 @@
       { name: 'Week lesson actions are consistent', status: !weekSnapshotAvailable ? 'warning' : weekActions.issueCount ? 'fail' : 'pass', detail: weekSnapshotAvailable ? `${weekActions.mountedCards || savedWeekSnapshot.cardCount} captured card(s) · ${weekActions.issueCount} action mismatch(es)` : 'No live Week snapshot has been captured yet' },
       { name: 'Week route date matches the visible week', status: !weekSnapshotAvailable ? 'warning' : sameVisibleWeek ? 'pass' : 'fail', detail: weekSnapshotAvailable ? `Route: ${routeWeekDate || 'none'} · Visible Monday: ${visibleWeekDate || 'none'}` : 'Run the live page test to capture the visible Week' },
       { name: 'Week focus date matches the visible week', status: !weekSnapshotAvailable ? 'warning' : focusMatchesVisibleWeek ? 'pass' : 'fail', detail: weekSnapshotAvailable ? `Focus date: ${snapshotFocusDate || 'none'} · Visible Monday: ${visibleWeekDate || 'none'}` : 'Run the live page test to capture the focus date' },
+      { name: 'Week cards have canonical dates', status: !weekSnapshotAvailable ? 'warning' : emptyWeekCardDates ? 'fail' : distinctWeekDates < 5 ? 'warning' : 'pass', detail: weekSnapshotAvailable ? `${distinctWeekDates} distinct day date(s) · ${emptyWeekCardDates} card(s) without a date` : 'Run the live page test to capture Week dates' },
+      { name: 'Bump uses safe single-lesson scope', status: 'pass', detail: `Implicit schedule-block series shifting disabled · ${implicitSeriesRisk} record(s) protected from accidental grouping` },
       { name: 'Lesson records have unique IDs', status: duplicateLessonIds ? 'fail' : 'pass', detail: `${duplicateLessonIds} duplicate lesson ID(s)` },
       { name: 'PDF calendar batch identified', status: latestPdfBatch || acceptanceEvents.length === 27 ? 'pass' : 'warning', detail: latestPdfBatch ? `${latestPdfBatch.fileName || 'PDF import'} · ${acceptanceEvents.length} linked event(s)` : `${acceptanceEvents.length || events.length} candidate event(s)` },
       { name: '27-event acceptance set is complete', status: acceptanceEvents.length === 27 ? 'pass' : 'warning', detail: `${acceptanceEvents.length} of 27 events identified` }
@@ -1498,7 +1620,7 @@
       tests,
       eventResults,
       liveAcceptanceResults,
-      details: { parseFailures, invalidDates, invalidEndDates, invalidTimes, duplicateCount, orphanChildren, missingRoutes, unresolvedRouteTargets, routeConnections: routeConnections.map(({ trigger, ...item }) => item), weekActions, weekSnapshot: savedWeekSnapshot, lessonRecords, routeWeekDate, visibleWeekDate, sameVisibleWeek, focusMatchesVisibleWeek, duplicateLessonIds, repair, quarantine }
+      details: { parseFailures, invalidDates, invalidEndDates, invalidTimes, duplicateCount, orphanChildren, missingRoutes, unresolvedRouteTargets, routeConnections: routeConnections.map(({ trigger, ...item }) => item), weekActions, weekSnapshot: savedWeekSnapshot, lessonRecords, routeWeekDate, visibleWeekDate, sameVisibleWeek, focusMatchesVisibleWeek, emptyWeekCardDates, distinctWeekDates, implicitSeriesRisk, duplicateLessonIds, repair, quarantine }
     };
   }
 
@@ -1506,6 +1628,45 @@
     if (status === 'pass') return '<span class="v19-status pass">PASS</span>';
     if (status === 'fail') return '<span class="v19-status fail">FAIL</span>';
     return '<span class="v19-status warning">REVIEW</span>';
+  }
+
+
+  function archiveLessonRecord(id) {
+    const lessons = readJSON('cos-lessons', []);
+    const updated = lessons.map((lesson) => String(lesson.id) === String(id)
+      ? { ...lesson, previousStatus: lesson.status || 'Planned', archived: true, status: 'Archived', archivedAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      : lesson);
+    writeJSON('cos-lessons', updated, 'Archive lesson record');
+  }
+
+  function restoreLessonRecord(id) {
+    const lessons = readJSON('cos-lessons', []);
+    const updated = lessons.map((lesson) => String(lesson.id) === String(id)
+      ? { ...lesson, archived: false, status: lesson.previousStatus || 'Planned', restoredAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+      : lesson);
+    writeJSON('cos-lessons', updated, 'Restore lesson record');
+  }
+
+  function deleteLessonRecord(id) {
+    const lessons = readJSON('cos-lessons', []);
+    writeJSON('cos-lessons', lessons.filter((lesson) => String(lesson.id) !== String(id)), 'Delete lesson record');
+  }
+
+  function lessonRepairRows(records) {
+    if (!records.length) return '<div class="v19-empty"><h2>No lesson records</h2><p>Create a lesson from Week to begin planning.</p></div>';
+    return `<div class="v19-lesson-repair-table">
+      <div class="v19-lesson-repair-row heading"><span>Date</span><span>Block</span><span>Status</span><span>Record</span><span>Action</span></div>
+      ${records.slice().sort((a, b) => String(a.date).localeCompare(String(b.date))).map((lesson) => {
+        const archived = normalizeRouteToken(lesson.status) === 'archived';
+        return `<div class="v19-lesson-repair-row">
+          <span>${escapeHTML(lesson.date || 'Unscheduled')}</span>
+          <span><strong>${escapeHTML(lesson.block || lesson.title || 'Untitled lesson')}</strong><small>${escapeHTML(lesson.scheduleBlockId || 'No block ID')}</small></span>
+          <span>${escapeHTML(lesson.status || 'Planned')}</span>
+          <span><code>${escapeHTML(lesson.id)}</code></span>
+          <span>${archived ? `<button class="v19-secondary-button compact" data-restore-lesson="${escapeHTML(lesson.id)}">Restore</button>` : `<button class="v19-secondary-button compact" data-archive-lesson="${escapeHTML(lesson.id)}">Archive</button>`}<button class="v19-danger-button compact" data-delete-lesson="${escapeHTML(lesson.id)}">Delete</button></span>
+        </div>`;
+      }).join('')}
+    </div>`;
   }
 
   function renderSystemHealth() {
@@ -1540,6 +1701,10 @@
         </div>
       </section>
       <section class="v19-panel">
+        <div class="v19-panel-heading"><div><h2>Lesson data repair</h2><p>Review, archive, restore, or delete test and misplaced lesson records. No record is removed automatically.</p></div><strong>${report.summary.lessons}</strong></div>
+        ${lessonRepairRows(report.details.lessonRecords || [])}
+      </section>
+      <section class="v19-panel">
         <div class="v19-panel-heading"><div><h2>27 PDF Calendar Event results</h2><p>Each identified event is checked for ID, title, date, range, and time integrity.</p></div><strong>${report.eventResults.filter((event) => event.status === 'pass').length}/${report.eventResults.length || 27}</strong></div>
         ${report.eventResults.length ? `<div class="v19-event-table"><div class="v19-event-row heading"><span>#</span><span>Event</span><span>Date</span><span>Result</span></div>${report.eventResults.map((event) => `<div class="v19-event-row"><span>${event.number}</span><span><strong>${escapeHTML(event.title)}</strong>${event.issues.length ? `<small>${escapeHTML(event.issues.join(', '))}</small>` : ''}</span><span>${escapeHTML(event.date)}</span><span>${statusIcon(event.status)}</span></div>`).join('')}</div>` : '<div class="v19-empty"><h2>No 27-event PDF batch identified</h2><p>Import the PDF calendar through Import Center, then return here. The acceptance table will link to the latest PDF calendar batch automatically.</p></div>'}
       </section>
@@ -1552,6 +1717,23 @@
     });
     root.querySelector('[data-export-health]')?.addEventListener('click', () => downloadJSON(report, `Classroom-v${VERSION}-system-health-${toDateString(new Date())}.json`));
     root.querySelector('[data-run-live]')?.addEventListener('click', runLiveAcceptance);
+    root.querySelectorAll('[data-archive-lesson]').forEach((button) => button.addEventListener('click', () => {
+      archiveLessonRecord(button.dataset.archiveLesson);
+      showToast('Lesson archived', true);
+      renderSystemHealth();
+    }));
+    root.querySelectorAll('[data-restore-lesson]').forEach((button) => button.addEventListener('click', () => {
+      restoreLessonRecord(button.dataset.restoreLesson);
+      showToast('Lesson restored', true);
+      renderSystemHealth();
+    }));
+    root.querySelectorAll('[data-delete-lesson]').forEach((button) => button.addEventListener('click', () => {
+      const id = button.dataset.deleteLesson;
+      if (!window.confirm(`Delete lesson ${id}? This can be undone from the top toolbar immediately after deletion.`)) return;
+      deleteLessonRecord(id);
+      showToast('Lesson deleted', true);
+      renderSystemHealth();
+    }));
   }
 
   function renderLiveResults(results) {
@@ -1692,7 +1874,6 @@
     const stored = readJSON('cos-focus-date', '');
     return localDate(stored) ? stored : toDateString(new Date());
   }
-
   function directWeekHeaderText(column) {
     if (!column) return '';
     const children = [...column.children].slice(0, 4);
@@ -1706,12 +1887,11 @@
 
   function dateFromWeekColumn(column, referenceDate = routeDateReference()) {
     if (!column) return '';
+    const direct = column.dataset?.v19StableDate || column.dataset?.date || column.getAttribute?.('data-date') || '';
+    if (localDate(direct)) return direct;
     const value = directWeekHeaderText(column);
     const match = value.match(/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b[\s\S]{0,30}?\b(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\.?\s+(\d{1,2})\b/i);
-    if (!match) {
-      const direct = column.dataset?.date || column.getAttribute?.('data-date') || '';
-      return localDate(direct) ? direct : '';
-    }
+    if (!match) return '';
     const reference = localDate(referenceDate) || new Date();
     const month = V19_MONTHS[String(match[2]).toLowerCase().replace('.', '')];
     const day = Number(match[3]);
@@ -1719,74 +1899,56 @@
     if (!Number.isInteger(month) || !day) return '';
     const candidates = [reference.getFullYear() - 1, reference.getFullYear(), reference.getFullYear() + 1]
       .map((year) => new Date(year, month, day, 12))
-      .filter((date) => date.getMonth() === month && date.getDate() === day)
-      .map((date) => ({ date, weekdayMatch: V19_WEEKDAYS[date.getDay()] === weekday, distance: Math.abs(date - reference) }))
-      .sort((a, b) => Number(b.weekdayMatch) - Number(a.weekdayMatch) || a.distance - b.distance);
-    return candidates[0] ? toDateString(candidates[0].date) : '';
+      .filter((date) => date.getMonth() === month && date.getDate() === day && V19_WEEKDAYS[date.getDay()] === weekday)
+      .sort((a, b) => Math.abs(a - reference) - Math.abs(b - reference));
+    return candidates[0] ? toDateString(candidates[0]) : '';
   }
-
   function weekColumnForCard(card) {
     const week = card?.closest?.('.week-workspace');
     if (!week) return null;
     let node = card?.parentElement || null;
     while (node && node !== week) {
-      if (dateFromWeekColumn(node)) return node;
+      const direct = node.dataset?.v19StableDate || node.dataset?.date || node.getAttribute?.('data-date') || '';
+      if (localDate(direct) || /\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b/i.test(directWeekHeaderText(node))) return node;
       node = node.parentElement;
     }
-    const candidates = [...week.querySelectorAll('.week-day-column, [class*="week-day-column"], [class*="day-column"]')]
-      .filter((node, index, all) => all.indexOf(node) === index && node.contains(card));
-    return candidates.find((node) => dateFromWeekColumn(node)) || candidates.at(-1) || null;
+    return null;
   }
-
   function visibleWeekAnchorDate() {
     const week = document.querySelector('.week-workspace');
     if (!week) return '';
-    const candidates = [...week.children, ...week.querySelectorAll(':scope > .week-day-column, :scope > [class*="week-day-column"], :scope > [class*="day-column"]')]
-      .filter((node, index, all) => all.indexOf(node) === index);
-    const dates = candidates.map((column) => dateFromWeekColumn(column)).filter(localDate).sort();
-    return dates[0] || '';
+    const stabilized = stabilizeWeekLayout();
+    return stabilized.weekStart || week.dataset.v19WeekStart || stableWeekStart();
   }
-
   function visibleWeekRouteDate() {
-    const input = [...document.querySelectorAll('.week-workspace input[type="date"]')]
-      .find((node) => node.offsetParent !== null && localDate(node.value));
-    return input?.value || visibleWeekAnchorDate() || routeDateReference();
+    return visibleWeekAnchorDate() || weekStartDate(routeDateReference());
   }
-
   function bumpCardDate(card) {
-    const direct = card?.dataset?.date || '';
-    if (localDate(direct)) return direct;
+    if (!card) return '';
+    const stable = card.dataset?.v19StableDate || card.dataset?.date || card.dataset?.v19CardDate || '';
+    if (localDate(stable)) return stable;
+    stabilizeWeekLayout();
+    const refreshed = card.dataset?.v19StableDate || card.dataset?.date || '';
+    if (localDate(refreshed)) return refreshed;
     const column = weekColumnForCard(card);
     const columnDate = dateFromWeekColumn(column);
     if (localDate(columnDate)) return columnDate;
-    const ancestorDate = column?.dataset?.date || card?.closest?.('[data-date]')?.dataset?.date || '';
-    if (localDate(ancestorDate)) return ancestorDate;
     const iso = text(card).match(/\b\d{4}-\d{2}-\d{2}\b/)?.[0];
-    if (localDate(iso)) return iso;
-    const week = card?.closest?.('.week-workspace');
-    if (week) {
-      const columns = [...week.querySelectorAll('.week-day-column, [class*="week-day-column"], [class*="day-column"]')]
-        .filter((node, index, array) => array.findIndex((item) => item === node) === index);
-      const column = columns.find((node) => node.contains(card));
-      const index = columns.indexOf(column);
-      if (index >= 0 && index < 7) {
-        const reference = localDate(visibleWeekAnchorDate() || routeDateReference()) || new Date();
-        const monday = new Date(reference);
-        monday.setHours(12, 0, 0, 0);
-        monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) + index);
-        return toDateString(monday);
-      }
-    }
-    return '';
+    return localDate(iso) ? iso : '';
   }
-
   function lessonForBumpCard(card) {
-    const lessons = currentLessons();
     const date = bumpCardDate(card);
-    const content = text(card).toLowerCase();
-    const directLessonId = card?.dataset?.lessonId
-      || card?.querySelector?.('[data-lesson-id]')?.dataset?.lessonId
-      || '';
+    if (!localDate(date)) return null;
+    const lessons = currentLessons().filter((lesson) => lesson.date === date);
+    if (!lessons.length) return null;
+
+    const directLessonId = card?.dataset?.lessonId || card?.dataset?.v19LessonId
+      || card?.querySelector?.('[data-lesson-id]')?.dataset?.lessonId || '';
+    if (directLessonId) {
+      const direct = lessons.find((lesson) => String(lesson.id) === String(directLessonId));
+      if (direct) return direct;
+    }
+
     const cardIds = new Set([
       card?.dataset?.scheduleBlockId,
       card?.dataset?.blockId,
@@ -1794,45 +1956,22 @@
       card?.querySelector?.('[data-schedule-block-id]')?.dataset?.scheduleBlockId,
       card?.querySelector?.('[data-block-id]')?.dataset?.blockId
     ].filter(Boolean).map(String));
-
-    const scoreLesson = (lesson) => {
-      let score = date && lesson.date === date ? 10 : 0;
-      if (directLessonId && String(lesson.id) === String(directLessonId)) score += 100;
-      if (lesson.scheduleBlockId && cardIds.has(String(lesson.scheduleBlockId))) score += 30;
-
-      const blockRecord = scheduleBlockForLesson(lesson);
-      const nameTokens = [
-        lesson.block,
-        lesson.title,
-        blockRecord?.name,
-        blockRecord?.title,
-        blockRecord?.label
-      ].map((value) => String(value || '').trim().toLowerCase()).filter((value) => value.length >= 3);
-      if (nameTokens.some((token) => content.includes(token))) score += 10;
-
-      const context = String(lesson.contextName || '').trim().toLowerCase();
-      if (context && content.includes(context)) score += 4;
-      if (lesson.start && content.includes(String(lesson.start).toLowerCase())) score += 3;
-      if (lesson.startTime && content.includes(String(lesson.startTime).toLowerCase())) score += 3;
-      return { lesson, score };
-    };
-
-    // A dated Week card may only match a lesson on that exact date. It must
-    // also match a lesson/block identifier or visible block name. Date alone
-    // is not enough because several Schedule Blocks can share the same day.
-    if (localDate(date)) {
-      const exact = lessons.filter((lesson) => lesson.date === date).map(scoreLesson).sort((a, b) => b.score - a.score);
-      if (!exact.length) return null;
-      if (exact[0].score >= 40) return exact[0].lesson;
-      if (exact[0].score >= 20 && exact[0].score > (exact[1]?.score || 0)) return exact[0].lesson;
-      if (card.classList.contains('standalone-session-card') && exact.length === 1) return exact[0].lesson;
-      return null;
+    if (cardIds.size) {
+      const exactId = lessons.filter((lesson) => lesson.scheduleBlockId && cardIds.has(String(lesson.scheduleBlockId)));
+      if (exactId.length === 1) return exactId[0];
+      if (exactId.length > 1) return null;
     }
 
-    const scored = lessons.map(scoreLesson).filter((item) => item.score >= 10).sort((a, b) => b.score - a.score);
-    return scored[0] && scored[0].score > (scored[1]?.score || 0) ? scored[0].lesson : null;
+    const titleNode = card.querySelector(':scope > .workspace-item-main > strong, :scope > .v19-week-card-main > strong');
+    const subtitleNode = card.querySelector(':scope > .workspace-item-main > span:not(.workspace-item-time):not(.status-chip), :scope > .v19-week-card-main > span:not(.workspace-item-time):not(.status-chip)');
+    const cardNames = [text(titleNode), text(subtitleNode)].filter(Boolean);
+    const matched = lessons.filter((lesson) => {
+      const blockRecord = scheduleBlockForLesson(lesson);
+      const lessonNames = [lesson.block, lesson.title, blockRecord?.name, blockRecord?.title, blockRecord?.label].filter(Boolean);
+      return lessonNames.some((lessonName) => cardNames.some((cardName) => namesRepresentSameBlock(lessonName, cardName)));
+    });
+    return matched.length === 1 ? matched[0] : null;
   }
-
   function leafTextElements(root) {
     return [...root.querySelectorAll('span, small, strong, b, p, div')]
       .filter((node) => node.children.length === 0 && text(node));
@@ -2189,24 +2328,58 @@
     return blocked;
   }
 
-  function nextBumpDate(lastDate, lesson, cadence = 7) {
-    const block = scheduleBlockForLesson(lesson);
-    const dayNames = Array.isArray(block?.days) ? block.days : block?.day ? [block.day] : [];
-    const allowedDays = new Set(dayNames.map((day) => String(day).slice(0, 3).toLowerCase()));
+  function nextBumpDate(lastDate, lesson) {
     const blocked = blockedInstructionDates();
-    const start = localDate(lastDate);
-    if (!start) return addDays(lastDate, cadence);
-    for (let offset = 1; offset <= 90; offset += 1) {
-      const candidate = new Date(start);
+    const context = lessonContextKey(lesson);
+    const block = scheduleBlockForLesson(lesson);
+    const sameBlock = (candidate) => {
+      const candidateBlock = scheduleBlockForLesson(candidate);
+      if (lesson.scheduleBlockId && candidate.scheduleBlockId) {
+        return String(lesson.scheduleBlockId) === String(candidate.scheduleBlockId);
+      }
+      return [candidate.block, candidate.title, candidateBlock?.name, candidateBlock?.title, candidateBlock?.label]
+        .filter(Boolean).some((candidateName) => [lesson.block, lesson.title, block?.name, block?.title, block?.label]
+          .filter(Boolean).some((name) => namesRepresentSameBlock(name, candidateName)));
+    };
+    const occupied = (date) => currentLessons().some((candidate) => String(candidate.id) !== String(lesson.id)
+      && candidate.date === date
+      && (!context || lessonContextKey(candidate) === context)
+      && sameBlock(candidate));
+
+    // Prefer an actual empty mounted Schedule occurrence from the visible Week.
+    const mounted = weekCards()
+      .map((card) => ({ card, date: bumpCardDate(card) }))
+      .filter((item) => localDate(item.date) && item.date > lastDate)
+      .filter((item) => {
+        const titleNode = item.card.querySelector(':scope > .workspace-item-main > strong, :scope > .v19-week-card-main > strong');
+        const cardName = text(titleNode);
+        return [lesson.block, lesson.title, block?.name, block?.title, block?.label]
+          .filter(Boolean).some((name) => namesRepresentSameBlock(name, cardName));
+      })
+      .map((item) => item.date)
+      .filter((date, index, all) => all.indexOf(date) === index && !blocked.has(date) && !occupied(date))
+      .sort();
+    if (mounted[0]) return mounted[0];
+
+    const schedule = readJSON('cos-schedule-blocks', []);
+    const parentId = block?.parentId || block?.parentBlockId;
+    const parent = parentId ? schedule.find((item) => String(item.id) === String(parentId)) : null;
+    const rawDays = [block?.days, block?.weekdays, block?.daysOfWeek, block?.day, parent?.days, parent?.weekdays, parent?.daysOfWeek, parent?.day]
+      .flatMap((value) => Array.isArray(value) ? value : value ? [value] : []);
+    const allowedDays = new Set(rawDays.map((day) => normalizeRouteToken(typeof day === 'object' ? (day.value || day.label || day.name) : day).slice(0, 3)).filter(Boolean));
+    const startDate = localDate(lastDate);
+    if (!startDate) return '';
+    for (let offset = 1; offset <= 120; offset += 1) {
+      const candidate = new Date(startDate);
       candidate.setDate(candidate.getDate() + offset);
       const date = toDateString(candidate);
       const weekday = candidate.toLocaleDateString('en-US', { weekday: 'short' }).toLowerCase();
-      const dayMatches = allowedDays.size ? allowedDays.has(weekday) : offset >= Math.max(1, cadence);
-      if (dayMatches && !blocked.has(date)) return date;
+      const weekdayFallback = candidate.getDay() >= 1 && candidate.getDay() <= 5;
+      const dayMatches = allowedDays.size ? allowedDays.has(weekday) : weekdayFallback;
+      if (dayMatches && !blocked.has(date) && !occupied(date)) return date;
     }
-    return addDays(lastDate, cadence);
+    return '';
   }
-
   function bumpDestinationFields(source, destination, lastDate) {
     const next = destination || source;
     const result = { date: destination?.date || lastDate };
@@ -2218,38 +2391,30 @@
   }
 
   function buildBumpPlan(lesson) {
-    const series = bumpSeries(lesson);
-    if (!series.length) return { series: [], changes: [], conflicts: [], skippedDates: [] };
-    const gaps = series.slice(1).map((item, index) => dateDiff(series[index].date, item.date)).filter((days) => days > 0);
-    const cadence = median(gaps);
-    const finalDate = nextBumpDate(series.at(-1).date, series.at(-1), cadence);
+    if (!lesson || !lessonCanBump(lesson)) return { series: [], changes: [], conflicts: [], skippedDates: [], safeMode: true };
+    const destination = nextBumpDate(lesson.date, lesson);
+    if (!localDate(destination)) return { series: [lesson], changes: [], conflicts: [], skippedDates: [], safeMode: true };
+    const fields = bumpDestinationFields(lesson, null, destination);
+    fields.date = destination;
+    const change = { id: lesson.id, title: lesson.block || lesson.title || 'Planning item', from: lesson.date, to: destination, fields };
+    const context = lessonContextKey(lesson);
+    const conflicts = currentLessons().filter((item) => String(item.id) !== String(lesson.id) && item.date === destination)
+      .filter((item) => !context || lessonContextKey(item) === context)
+      .map((item) => ({ date: destination, title: item.block || item.title || 'Existing lesson' }));
     const blocked = blockedInstructionDates();
-    const changes = series.map((item, index) => {
-      const destination = series[index + 1] || null;
-      const fields = bumpDestinationFields(item, destination, finalDate);
-      return { id: item.id, title: item.block || item.title || 'Planning item', from: item.date, to: fields.date, fields };
-    });
-    const seriesIds = new Set(series.map((item) => String(item.id)));
-    const all = currentLessons();
-    const conflicts = changes.flatMap((change) => all.filter((item) => !seriesIds.has(String(item.id)) && item.date === change.to && (
-      (lesson.contextId && item.contextId === lesson.contextId) ||
-      (lesson.contextName && item.contextName === lesson.contextName)
-    )).map((item) => ({ date: change.to, title: item.block || item.title || 'Existing lesson' })));
     const skippedDates = [];
-    const last = localDate(series.at(-1).date);
-    const final = localDate(finalDate);
-    if (last && final) {
-      const cursor = new Date(last);
+    const cursor = localDate(lesson.date);
+    const end = localDate(destination);
+    if (cursor && end) {
       cursor.setDate(cursor.getDate() + 1);
-      while (cursor < final) {
-        const value = toDateString(cursor);
-        if (blocked.has(value)) skippedDates.push(value);
+      while (cursor < end) {
+        const date = toDateString(cursor);
+        if (blocked.has(date)) skippedDates.push(date);
         cursor.setDate(cursor.getDate() + 1);
       }
     }
-    return { series, changes, conflicts, skippedDates, cadence };
+    return { series: [lesson], changes: [change], conflicts, skippedDates, safeMode: true };
   }
-
   function executeV19Bump(lesson) {
     const allLessons = readJSON('cos-lessons', []);
     const plan = buildBumpPlan(lesson);
@@ -2280,31 +2445,11 @@
   }
 
   function bumpSeries(lesson) {
-    const lessons = currentLessons()
-      .filter((item) => item.date && !['Completed', 'Cancelled'].includes(item.status))
-      .sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.start || a.startTime || '').localeCompare(String(b.start || b.startTime || '')));
-    if (!lesson) return [];
-    const contextKey = (item) => {
-      if (item.contextId) return `${item.contextType || 'context'}:${item.contextId}`;
-      if (item.classId) return `class:${item.classId}`;
-      if (item.groupId) return `group:${item.groupId}`;
-      if (item.learnerId || item.studentId) return `learner:${item.learnerId || item.studentId}`;
-      if (item.contextName) return `${item.contextType || 'context-name'}:${String(item.contextName).trim().toLowerCase()}`;
-      return '';
-    };
-    const lessonContext = contextKey(lesson);
-    const sameSeries = lessons.filter((item) => {
-      const itemContext = contextKey(item);
-      const contextMatch = lessonContext ? itemContext === lessonContext : !itemContext;
-      const blockMatch = lesson.scheduleBlockId && item.scheduleBlockId
-        ? String(item.scheduleBlockId) === String(lesson.scheduleBlockId)
-        : String(item.block || '') === String(lesson.block || '');
-      return contextMatch && blockMatch;
-    });
-    const startIndex = sameSeries.findIndex((item) => String(item.id) === String(lesson.id));
-    return startIndex >= 0 ? sameSeries.slice(startIndex) : [lesson];
+    // Core Stability safe mode: an unambiguously selected lesson is the only
+    // record moved. Implicit grouping by scheduleBlockId is intentionally
+    // disabled because it previously linked unrelated dates and school years.
+    return lesson ? [lesson] : [];
   }
-
   function previewBump(button) {
     const { lesson, cardDate, cardText, staleLessonId } = identifyBumpLesson(button);
     const plan = buildBumpPlan(lesson);
@@ -2317,13 +2462,13 @@
         <button class="v19-modal-close" aria-label="Close">${ICONS.close}</button>
         <span class="v19-eyebrow">BUMP PREVIEW</span>
         <h2 id="v19-bump-title">Move this lesson forward?</h2>
-        <p>${lesson ? `${plan.changes.length} lesson${plan.changes.length === 1 ? '' : 's'} will move into the next available session slot.` : 'This card is no longer connected to a lesson on the displayed date. Close the preview and try again after the Week view finishes updating.'}</p>
+        <p>${lesson ? `1 lesson will move into the next available scheduled slot. Safe mode will not move unrelated lessons.` : 'This card is no longer connected to a lesson on the displayed date. Close the preview and try again after the Week view finishes updating.'}</p>
         ${lesson ? `<p class="v19-modal-note"><strong>The Schedule Block stays on ${escapeHTML(formatDate(cardDate || lesson.date, { weekday: 'long', month: 'short', day: 'numeric' }))}.</strong> Only the lesson plan moves; the original block returns to Needs plan.</p>` : staleLessonId ? `<p class="v19-modal-warning">A stale lesson link (${escapeHTML(staleLessonId)}) was removed from this card.</p>` : ''}
         ${preview.length ? `<div class="v19-bump-preview">${preview.map((item) => `<div><strong>${escapeHTML(item.title)}</strong><span>${escapeHTML(item.from)} → ${escapeHTML(item.to)}</span></div>`).join('')}${plan.changes.length > preview.length ? `<small>+ ${plan.changes.length - preview.length} additional item(s)</small>` : ''}</div>` : `<div class="v19-bump-preview"><p>${escapeHTML(cardText || 'Selected planning item')}</p></div>`}
         ${plan.skippedDates.length ? `<p class="v19-modal-note"><strong>Skipped:</strong> ${escapeHTML(plan.skippedDates.slice(0, 6).join(', '))}${plan.skippedDates.length > 6 ? '…' : ''}</p>` : ''}
         ${plan.conflicts.length ? `<p class="v19-modal-warning"><strong>${plan.conflicts.length} possible conflict${plan.conflicts.length === 1 ? '' : 's'}:</strong> ${escapeHTML(plan.conflicts.slice(0, 3).map((item) => `${item.date} ${item.title}`).join('; '))}</p>` : ''}
         <p class="v19-modal-note">After the change, use the Undo button in the confirmation message or the icon in the top toolbar.</p>
-        <div class="v19-modal-actions"><button class="v19-secondary-button" data-cancel>Cancel</button><button class="v19-primary-button" data-confirm ${lesson ? '' : 'disabled'}>Confirm Bump</button></div>
+        <div class="v19-modal-actions"><button class="v19-secondary-button" data-cancel>Cancel</button><button class="v19-primary-button" data-confirm ${lesson && plan.changes.length && !plan.conflicts.length ? '' : 'disabled'}>Confirm Bump</button></div>
       </div>`;
     document.body.appendChild(overlay);
     const close = () => overlay.remove();
@@ -2464,7 +2609,18 @@
     window.setTimeout(() => showToast(pending.message, Boolean(pending.undo)), 180);
   }
 
+  let maintenanceQueued = false;
+  function scheduleMaintenance() {
+    if (maintenanceQueued) return;
+    maintenanceQueued = true;
+    window.requestAnimationFrame(() => {
+      maintenanceQueued = false;
+      maintainEnhancements();
+    });
+  }
+
   function maintainEnhancements() {
+    stabilizeWeekLayout();
     installCustomNavigation();
     registerNativeRoutes();
     installHistoryToolbar();
@@ -2492,10 +2648,10 @@
     window.addEventListener('popstate', navigateFromHash);
     window.addEventListener('hashchange', navigateFromHash);
     window.addEventListener('classroom:v19-history', updateHistoryToolbar);
-    window.addEventListener('classroom:v19-data-change', () => window.setTimeout(maintainEnhancements, 0));
-    window.addEventListener('classroom:v19-restored', () => window.setTimeout(maintainEnhancements, 0));
+    window.addEventListener('classroom:v19-data-change', scheduleMaintenance);
+    window.addEventListener('classroom:v19-restored', scheduleMaintenance);
 
-    const observer = new MutationObserver(() => maintainEnhancements());
+    const observer = new MutationObserver(scheduleMaintenance);
     observer.observe(document.documentElement, { childList: true, subtree: true });
 
     const ready = window.setInterval(() => {
@@ -2509,7 +2665,7 @@
         routeBootstrapPending = false;
         syncHashFromActiveNav();
       }, 360);
-      document.documentElement.dataset.classroomVersion = '19.2A.5';
+      document.documentElement.dataset.classroomVersion = '19.3';
       console.info(`Classroom v${VERSION} workflow and navigation enhancements loaded.`);
     }, 60);
   }
@@ -2528,7 +2684,14 @@
     bumpCardDate,
     visibleWeekAnchorDate,
     visibleWeekRouteDate,
-    identifyBumpLesson
+    identifyBumpLesson,
+    weekStartDate,
+    stableWeekStart,
+    stabilizeWeekLayout,
+    namesRepresentSameBlock,
+    archiveLessonRecord,
+    restoreLessonRecord,
+    deleteLessonRecord
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
