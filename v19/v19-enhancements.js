@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.2.2';
-  const RELEASE_LABEL = 'v19.2A.2 · Week Final Stabilization';
+  const VERSION = '19.2.3';
+  const RELEASE_LABEL = 'v19.2A.3 · Undo/Redo Route Preservation';
   const ROUTES = {
     today: { label: 'Today', path: 'today', aliases: ['Today', 'Today workspace', 'Home'] },
     week: { label: 'Week', path: 'week', aliases: ['Week', 'Weekly planner', 'Week workspace'] },
@@ -41,6 +41,8 @@
   let libraryStandardView = 'categories';
   let libraryStandardSearch = '';
   let calendarRepairResult = null;
+  let restoredRoutePending = Boolean(sessionStorage.getItem('classroom-v19-return-route'));
+  let restoredRouteHash = sessionStorage.getItem('classroom-v19-return-route') || '';
   const routeRegistry = new Map();
 
   const text = (node) => (node?.textContent || '').replace(/\s+/g, ' ').trim();
@@ -336,7 +338,7 @@
   }
 
   function syncHashFromActiveNav() {
-    if (customMode || routeLock) return;
+    if (customMode || routeLock || restoredRoutePending) return;
     const active = document.querySelector('.sidebar .nav-button.active');
     if (!active) return;
     const route = routeForLabel(text(active));
@@ -506,8 +508,14 @@
       <button type="button" class="v19-icon-button" data-action="undo" title="Undo" aria-label="Undo">${ICONS.undo}</button>
       <button type="button" class="v19-icon-button" data-action="redo" title="Redo" aria-label="Redo">${ICONS.redo}</button>
     `;
-    toolbar.querySelector('[data-action="undo"]').addEventListener('click', () => window.ClassroomV19History?.undo());
-    toolbar.querySelector('[data-action="redo"]').addEventListener('click', () => window.ClassroomV19History?.redo());
+    const invokeHistory = (action, event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      window.ClassroomV19History?.[action]?.();
+    };
+    toolbar.querySelector('[data-action="undo"]').addEventListener('click', (event) => invokeHistory('undo', event), true);
+    toolbar.querySelector('[data-action="redo"]').addEventListener('click', (event) => invokeHistory('redo', event), true);
     shell.appendChild(toolbar);
     updateHistoryToolbar();
   }
@@ -2038,7 +2046,12 @@
     const toast = document.createElement('div');
     toast.className = 'v19-toast';
     toast.innerHTML = `<span>${escapeHTML(message)}</span>${withUndo ? '<button type="button">Undo</button>' : ''}`;
-    toast.querySelector('button')?.addEventListener('click', () => window.ClassroomV19History?.undo());
+    toast.querySelector('button')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      window.ClassroomV19History?.undo();
+    }, true);
     document.body.appendChild(toast);
     window.setTimeout(() => toast.remove(), 7000);
   }
@@ -2072,6 +2085,8 @@
   function applyRestoredRoute() {
     const returnRoute = sessionStorage.getItem('classroom-v19-return-route');
     if (returnRoute) {
+      restoredRoutePending = true;
+      restoredRouteHash = returnRoute;
       sessionStorage.removeItem('classroom-v19-return-route');
       history.replaceState({ restored: true }, '', returnRoute);
     }
@@ -2079,8 +2094,21 @@
     try { scroll = JSON.parse(sessionStorage.getItem('classroom-v19-return-scroll') || 'null'); } catch { scroll = null; }
     if (scroll) {
       sessionStorage.removeItem('classroom-v19-return-scroll');
-      window.setTimeout(() => window.scrollTo(Number(scroll.x || 0), Number(scroll.y || 0)), 320);
+      window.setTimeout(() => window.scrollTo(Number(scroll.x || 0), Number(scroll.y || 0)), 420);
     }
+  }
+
+  function finishRestoredRoute() {
+    if (!restoredRoutePending) return;
+    if (restoredRouteHash && location.hash !== restoredRouteHash) {
+      history.replaceState({ restored: true }, '', restoredRouteHash);
+    }
+    navigateFromHash();
+    window.setTimeout(() => {
+      restoredRoutePending = false;
+      restoredRouteHash = '';
+      syncHashFromActiveNav();
+    }, 180);
   }
 
   function showPendingToast() {
@@ -2128,8 +2156,9 @@
       window.clearInterval(ready);
       maintainEnhancements();
       navigateFromHash();
+      finishRestoredRoute();
       showPendingToast();
-      document.documentElement.dataset.classroomVersion = '19.2A.2';
+      document.documentElement.dataset.classroomVersion = '19.2A.3';
       console.info(`Classroom v${VERSION} workflow and navigation enhancements loaded.`);
     }, 60);
   }
