@@ -1,12 +1,12 @@
 {
-  "name": "Classroom v19.4.1 \u00b7 Learner Week Navigation Hotfix",
-  "short_name": "Classroom v19.4.1",
-  "description": "Safe Learner-to-Week navigation, lesson record sanitization, and the v19.4 Lesson & Learner Workflow.",
+  "name": "Classroom v19.4.2 \u00b7 Week Header & Template Repair",
+  "short_name": "Classroom v19.4.2",
+  "description": "A compact Week header, working lesson-template dialogs, recurring Schedule Block links, and safer diagnostics.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F5F3EE",
   "theme_color": "#334B4F",
-  "version": "19.4.1",
+  "version": "19.4.2",
   "icons": []
 }
