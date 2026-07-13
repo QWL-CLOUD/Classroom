@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.0';
-  const RELEASE_LABEL = 'v19.4 · Lesson & Learner Workflow';
+  const VERSION = '19.4.1';
+  const RELEASE_LABEL = 'v19.4.1 · Learner Week Navigation Hotfix';
   const ROUTES = {
     today: { label: 'Today', path: 'today', aliases: ['Today', 'Today workspace', 'Home'] },
     week: { label: 'Week', path: 'week', aliases: ['Week', 'Weekly planner', 'Week workspace'] },
@@ -1597,6 +1597,7 @@
       { name: 'Parent / child schedule links resolve', status: orphanChildren.length ? 'fail' : 'pass', detail: `${orphanChildren.length} orphan child block(s)` },
       { name: 'Main page connections exist', status: missingRoutes.length ? 'fail' : unresolvedRouteTargets.length ? 'warning' : 'pass', detail: missingRoutes.length ? `Missing registrations: ${missingRoutes.join(', ')}` : unresolvedRouteTargets.length ? `Registered; trigger pending: ${unresolvedRouteTargets.join(', ')}` : 'All main routes registered and connected' },
       { name: 'Undo / Redo controls are available', status: document.querySelector('.v19-history-toolbar') ? 'pass' : 'fail', detail: 'Icon-only controls in the top toolbar' },
+      { name: 'Learner View in Week uses safe navigation', status: document.documentElement.dataset.v1941LearnerWeekBridge === 'true' ? 'pass' : 'fail', detail: 'Capture-phase bridge bypasses the unsafe legacy callback and preserves learner context' },
       { name: 'Week lesson actions are consistent', status: !weekSnapshotAvailable ? 'warning' : weekActions.issueCount ? 'fail' : 'pass', detail: weekSnapshotAvailable ? `${weekActions.mountedCards || savedWeekSnapshot.cardCount} captured card(s) · ${weekActions.issueCount} action mismatch(es)` : 'No live Week snapshot has been captured yet' },
       { name: 'Week route date matches the visible week', status: !weekSnapshotAvailable ? 'warning' : sameVisibleWeek ? 'pass' : 'fail', detail: weekSnapshotAvailable ? `Route: ${routeWeekDate || 'none'} · Visible Monday: ${visibleWeekDate || 'none'}` : 'Run the live page test to capture the visible Week' },
       { name: 'Week focus date matches the visible week', status: !weekSnapshotAvailable ? 'warning' : focusMatchesVisibleWeek ? 'pass' : 'fail', detail: weekSnapshotAvailable ? `Focus date: ${snapshotFocusDate || 'none'} · Visible Monday: ${visibleWeekDate || 'none'}` : 'Run the live page test to capture the focus date' },
@@ -1864,10 +1865,63 @@
     }
   }
 
+  function learnerWeekContext(page) {
+    if (!page) return null;
+    const title = text(page.querySelector('.page-header h1, .page-title h1, header h1, h1'));
+    const eyebrow = text(page.querySelector('.page-header .eyebrow, .page-title .eyebrow, [class*="eyebrow"]'));
+    const contextType = /\bclass\b/i.test(eyebrow) ? 'Class'
+      : /\bgroup\b/i.test(eyebrow) ? 'Group'
+        : /\b(individual|learner|student)\b/i.test(eyebrow) ? 'Individual' : '';
+    const records = currentLessons().filter((lesson) => lesson && typeof lesson === 'object');
+    const normalizedTitle = normalizeRouteToken(title);
+    const matches = records.filter((lesson) => {
+      const nameMatches = normalizedTitle && normalizeRouteToken(lesson.contextName) === normalizedTitle;
+      const typeMatches = !contextType || !lesson.contextType || normalizeRouteToken(lesson.contextType) === normalizeRouteToken(contextType);
+      return nameMatches && typeMatches;
+    });
+    const upcoming = matches
+      .filter((lesson) => localDate(lesson.date) && !['completed','cancelled','archived'].includes(normalizeRouteToken(lesson.status)))
+      .sort((a, b) => `${a.date || ''} ${a.time || a.start || ''}`.localeCompare(`${b.date || ''} ${b.time || b.start || ''}`));
+    const first = upcoming[0] || matches.find((lesson) => localDate(lesson.date)) || null;
+    return {
+      type: contextType || first?.contextType || '',
+      id: first?.contextId || '',
+      name: title || first?.contextName || '',
+      date: first?.date || '',
+      block: first?.block || first?.title || '',
+      lessonId: first?.id || ''
+    };
+  }
+
   function installViewInWeekFix() {
+    if (document.documentElement.dataset.v1941LearnerWeekBridge) return;
+    document.documentElement.dataset.v1941LearnerWeekBridge = 'true';
     document.addEventListener('click', (event) => {
       const button = event.target.closest('button');
       if (!button || !/^view in week$/i.test(text(button))) return;
+
+      const learnerPage = button.closest('.learner-planning-unified');
+      if (learnerPage) {
+        // Bypass the older native callback. In some saved interface states it
+        // resolves an undefined planning record and reads record.createdAt.
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        const context = learnerWeekContext(learnerPage) || {};
+        const fallbackDate = readJSON('cos-focus-date', '') || toDateString(new Date());
+        const date = localDate(context.date) ? context.date : fallbackDate;
+        sessionStorage.setItem('classroom-v19-week-context', JSON.stringify({
+          type: context.type || '',
+          id: context.id || '',
+          name: context.name || '',
+          date,
+          storedAt: Date.now()
+        }));
+        window.setTimeout(() => navigateToWeek(date, context.block || '', context.lessonId || ''), 0);
+        return;
+      }
+
+      // Keep the generic View in Week enhancement for other pages.
       const card = button.closest('article, [class*="card"], [class*="planning"]');
       const content = text(card);
       const date = content.match(/\b\d{4}-\d{2}-\d{2}\b/)?.[0] || readJSON('cos-focus-date', '');
@@ -2689,7 +2743,7 @@
         routeBootstrapPending = false;
         syncHashFromActiveNav();
       }, 360);
-      document.documentElement.dataset.classroomVersion = '19.4';
+      document.documentElement.dataset.classroomVersion = '19.4.1';
       console.info(`Classroom v${VERSION} lesson and learner workflow loaded.`);
     }, 60);
   }

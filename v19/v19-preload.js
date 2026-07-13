@@ -118,6 +118,55 @@
 
   repairCalendarBeforeApp();
 
+
+  function repairLessonsBeforeApp() {
+    let lessons;
+    try { lessons = JSON.parse(localStorage.getItem('cos-lessons') || '[]'); } catch { return; }
+    if (!Array.isArray(lessons)) return;
+    let quarantine;
+    try { quarantine = JSON.parse(localStorage.getItem('cos-lesson-quarantine-v19') || '[]'); } catch { quarantine = []; }
+    if (!Array.isArray(quarantine)) quarantine = [];
+    const now = new Date().toISOString();
+    let repaired = 0;
+    let removed = 0;
+    const clean = [];
+    lessons.forEach((record, index) => {
+      if (!record || typeof record !== 'object' || Array.isArray(record)) {
+        quarantine.push({
+          id: `invalid-lesson-${Date.now()}-${index}`,
+          originalValue: record ?? null,
+          quarantineReason: 'Invalid lesson record shape',
+          quarantinedAt: now
+        });
+        removed += 1;
+        return;
+      }
+      const lesson = { ...record };
+      if (!lesson.id) { lesson.id = `L-repaired-${Date.now()}-${index}`; repaired += 1; }
+      const createdAt = lesson.createdAt || lesson.updatedAt || lesson.modifiedAt || now;
+      if (!lesson.createdAt) { lesson.createdAt = createdAt; repaired += 1; }
+      if (!lesson.updatedAt) { lesson.updatedAt = createdAt; repaired += 1; }
+      ['standardRefs','rubricRefs','activityRefs','materialRefs'].forEach((key) => {
+        if (!Array.isArray(lesson[key])) { lesson[key] = []; repaired += 1; }
+      });
+      clean.push(lesson);
+    });
+    if (repaired || removed || JSON.stringify(clean) !== JSON.stringify(lessons)) {
+      localStorage.setItem('cos-lessons', JSON.stringify(clean));
+      localStorage.setItem('cos-lesson-quarantine-v19', JSON.stringify(quarantine));
+    }
+    localStorage.setItem('cos-lesson-repair-v19', JSON.stringify({
+      ranAt: now,
+      repaired,
+      removed,
+      activeLessons: clean.length,
+      quarantineTotal: quarantine.length,
+      stage: 'preload-before-react'
+    }));
+  }
+
+  repairLessonsBeforeApp();
+
   function isTrackedStorage(storage) {
     return storage === window.localStorage;
   }

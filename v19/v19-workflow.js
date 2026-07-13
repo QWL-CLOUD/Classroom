@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.0';
+  const VERSION = '19.4.1';
   const KEYS = {
     templates: 'cos-planning-templates-v19',
     notices: 'cos-learner-notices-v19',
