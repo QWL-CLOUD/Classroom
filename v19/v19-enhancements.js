@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.2.4';
-  const RELEASE_LABEL = 'v19.2A.4 · Route & Date Consistency';
+  const VERSION = '19.2.5';
+  const RELEASE_LABEL = 'v19.2A.5 · Week Plan Date Binding & Diagnostics';
   const ROUTES = {
     today: { label: 'Today', path: 'today', aliases: ['Today', 'Today workspace', 'Home'] },
     week: { label: 'Week', path: 'week', aliases: ['Week', 'Weekly planner', 'Week workspace'] },
@@ -37,6 +37,7 @@
   let customRoot = null;
   let bumpBypassButton = null;
   let liveAcceptanceResults = null;
+  let liveWeekSnapshot = null;
   let insightState = { kind: 'all', search: '', context: 'all' };
   let libraryStandardView = 'categories';
   let libraryStandardSearch = '';
@@ -82,6 +83,23 @@
       window.dispatchEvent(event);
     }
     window.dispatchEvent(new CustomEvent('classroom:v19-data-change', { detail: { key, oldValue, newValue } }));
+  }
+
+
+  function writeJSONSilently(key, value) {
+    const oldValue = localStorage.getItem(key);
+    const newValue = JSON.stringify(value);
+    if (oldValue === newValue) return false;
+    localStorage.setItem(key, newValue);
+    dispatchStorageUpdate(key, oldValue, newValue);
+    return true;
+  }
+
+  function setFocusDateSilently(date, source = 'unknown') {
+    if (!localDate(date)) return '';
+    writeJSONSilently('cos-focus-date', date);
+    sessionStorage.setItem('classroom-v19-last-focus-date', JSON.stringify({ date, source, at: new Date().toISOString() }));
+    return date;
   }
 
   function writeJSON(key, value, label = 'Change') {
@@ -240,6 +258,9 @@
   }
 
   function setHash(path, params = {}, replace = false) {
+    if (['week', 'today', 'calendar'].includes(path) && localDate(params.date)) {
+      setFocusDateSilently(params.date, `route:${path}`);
+    }
     const next = buildHash(path, params);
     if (location.hash === next) return;
     routeLock = true;
@@ -297,6 +318,7 @@
 
   function applyDateToVisiblePage(date, attempt = 0) {
     if (!localDate(date)) return;
+    setFocusDateSilently(date, 'apply-visible-page-date');
     routeDateApplication = true;
 
     const finish = () => {
@@ -1398,19 +1420,34 @@
     const unresolvedRouteTargets = routeConnections.filter((item) => !item.targetFound).map((item) => item.label);
     const quarantine = readJSON('cos-calendar-quarantine-v19', []);
     const repair = readJSON('cos-calendar-repair-v19', calendarRepairResult || {});
-    const weekActions = weekActionDiagnostics();
+    const mountedWeekCards = weekCards().length;
+    const currentWeekSnapshot = mountedWeekCards ? captureWeekSnapshot() : null;
+    const savedWeekSnapshot = currentWeekSnapshot || storedWeekSnapshot();
+    const weekActions = currentWeekSnapshot?.diagnostics || savedWeekSnapshot?.diagnostics || weekActionDiagnostics();
     const duplicateLessonIds = lessons.length - new Set(lessons.map((lesson) => String(lesson.id || ''))).size;
     const parsedRoute = parseHash();
-    const routeWeekDate = parsedRoute.path === 'week' ? parsedRoute.params.get('date') || '' : '';
-    const visibleWeekDate = visibleWeekAnchorDate();
+    const routeWeekDate = currentWeekSnapshot?.routeWeekDate || savedWeekSnapshot?.routeWeekDate || (parsedRoute.path === 'week' ? parsedRoute.params.get('date') || '' : '');
+    const visibleWeekDate = currentWeekSnapshot?.visibleWeekDate || savedWeekSnapshot?.visibleWeekDate || visibleWeekAnchorDate();
     const sameVisibleWeek = (() => {
-      if (!localDate(routeWeekDate) || !localDate(visibleWeekDate)) return true;
+      if (!localDate(routeWeekDate) || !localDate(visibleWeekDate)) return false;
       const first = localDate(routeWeekDate);
       const second = localDate(visibleWeekDate);
       first.setDate(first.getDate() - ((first.getDay() + 6) % 7));
       second.setDate(second.getDate() - ((second.getDay() + 6) % 7));
       return toDateString(first) === toDateString(second);
     })();
+
+    const weekSnapshotAvailable = Boolean(savedWeekSnapshot?.cardCount);
+    const snapshotFocusDate = savedWeekSnapshot?.focusDate || '';
+    const focusMatchesVisibleWeek = (() => {
+      if (!localDate(snapshotFocusDate) || !localDate(visibleWeekDate)) return false;
+      const first = localDate(snapshotFocusDate);
+      const second = localDate(visibleWeekDate);
+      first.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+      second.setDate(second.getDate() - ((second.getDay() + 6) % 7));
+      return toDateString(first) === toDateString(second);
+    })();
+    const lessonRecords = lessons.map(summarizeLessonForDiagnostics);
 
     const tests = [
       { name: 'Local data can be read', status: parseFailures.length ? 'fail' : 'pass', detail: parseFailures.length ? `Unreadable: ${parseFailures.join(', ')}` : `${keys.length - parseFailures.length} data stores checked` },
@@ -1422,8 +1459,9 @@
       { name: 'Parent / child schedule links resolve', status: orphanChildren.length ? 'fail' : 'pass', detail: `${orphanChildren.length} orphan child block(s)` },
       { name: 'Main page connections exist', status: missingRoutes.length ? 'fail' : unresolvedRouteTargets.length ? 'warning' : 'pass', detail: missingRoutes.length ? `Missing registrations: ${missingRoutes.join(', ')}` : unresolvedRouteTargets.length ? `Registered; trigger pending: ${unresolvedRouteTargets.join(', ')}` : 'All main routes registered and connected' },
       { name: 'Undo / Redo controls are available', status: document.querySelector('.v19-history-toolbar') ? 'pass' : 'fail', detail: 'Icon-only controls in the top toolbar' },
-      { name: 'Week lesson actions are consistent', status: weekActions.issueCount ? 'fail' : 'pass', detail: weekActions.mountedCards ? `${weekActions.mountedCards} mounted card(s) · ${weekActions.issueCount} action mismatch(es)` : 'No Week cards currently mounted · no stored action mismatch detected' },
-      { name: 'Week route date matches the visible week', status: sameVisibleWeek ? 'pass' : 'fail', detail: localDate(visibleWeekDate) ? `Route: ${routeWeekDate || 'none'} · Visible Monday: ${visibleWeekDate}` : 'Week is not currently mounted' },
+      { name: 'Week lesson actions are consistent', status: !weekSnapshotAvailable ? 'warning' : weekActions.issueCount ? 'fail' : 'pass', detail: weekSnapshotAvailable ? `${weekActions.mountedCards || savedWeekSnapshot.cardCount} captured card(s) · ${weekActions.issueCount} action mismatch(es)` : 'No live Week snapshot has been captured yet' },
+      { name: 'Week route date matches the visible week', status: !weekSnapshotAvailable ? 'warning' : sameVisibleWeek ? 'pass' : 'fail', detail: weekSnapshotAvailable ? `Route: ${routeWeekDate || 'none'} · Visible Monday: ${visibleWeekDate || 'none'}` : 'Run the live page test to capture the visible Week' },
+      { name: 'Week focus date matches the visible week', status: !weekSnapshotAvailable ? 'warning' : focusMatchesVisibleWeek ? 'pass' : 'fail', detail: weekSnapshotAvailable ? `Focus date: ${snapshotFocusDate || 'none'} · Visible Monday: ${visibleWeekDate || 'none'}` : 'Run the live page test to capture the focus date' },
       { name: 'Lesson records have unique IDs', status: duplicateLessonIds ? 'fail' : 'pass', detail: `${duplicateLessonIds} duplicate lesson ID(s)` },
       { name: 'PDF calendar batch identified', status: latestPdfBatch || acceptanceEvents.length === 27 ? 'pass' : 'warning', detail: latestPdfBatch ? `${latestPdfBatch.fileName || 'PDF import'} · ${acceptanceEvents.length} linked event(s)` : `${acceptanceEvents.length || events.length} candidate event(s)` },
       { name: '27-event acceptance set is complete', status: acceptanceEvents.length === 27 ? 'pass' : 'warning', detail: `${acceptanceEvents.length} of 27 events identified` }
@@ -1459,7 +1497,8 @@
       },
       tests,
       eventResults,
-      details: { parseFailures, invalidDates, invalidEndDates, invalidTimes, duplicateCount, orphanChildren, missingRoutes, unresolvedRouteTargets, routeConnections: routeConnections.map(({ trigger, ...item }) => item), weekActions, routeWeekDate, visibleWeekDate, sameVisibleWeek, duplicateLessonIds, repair, quarantine }
+      liveAcceptanceResults,
+      details: { parseFailures, invalidDates, invalidEndDates, invalidTimes, duplicateCount, orphanChildren, missingRoutes, unresolvedRouteTargets, routeConnections: routeConnections.map(({ trigger, ...item }) => item), weekActions, weekSnapshot: savedWeekSnapshot, lessonRecords, routeWeekDate, visibleWeekDate, sameVisibleWeek, focusMatchesVisibleWeek, duplicateLessonIds, repair, quarantine }
     };
   }
 
@@ -1548,12 +1587,26 @@
       });
       if (route.path === 'week' && active && page) {
         maintainEnhancements();
-        await delay(80);
-        const diagnostics = weekActionDiagnostics();
+        await delay(120);
+        const snapshot = captureWeekSnapshot();
+        const diagnostics = snapshot.diagnostics;
         checks.push({
           name: 'Week lesson/action consistency',
           status: diagnostics.issueCount ? 'fail' : 'pass',
-          detail: `${diagnostics.mountedCards} card(s) checked · ${diagnostics.issueCount} mismatch(es).`
+          detail: `${snapshot.cardCount} card(s) captured · ${diagnostics.issueCount} mismatch(es) · route ${snapshot.routeWeekDate || 'none'} · visible ${snapshot.visibleWeekDate || 'none'} · focus ${snapshot.focusDate || 'none'}.`
+        });
+        const focusSameWeek = (() => {
+          const first = localDate(snapshot.focusDate);
+          const second = localDate(snapshot.visibleWeekDate);
+          if (!first || !second) return false;
+          first.setDate(first.getDate() - ((first.getDay() + 6) % 7));
+          second.setDate(second.getDate() - ((second.getDay() + 6) % 7));
+          return toDateString(first) === toDateString(second);
+        })();
+        checks.push({
+          name: 'Week plan date context',
+          status: focusSameWeek ? 'pass' : 'fail',
+          detail: `Focus ${snapshot.focusDate || 'none'} · visible Monday ${snapshot.visibleWeekDate || 'none'} · ${snapshot.lessons.length} lesson record(s) captured.`
         });
       }
     }
@@ -1972,6 +2025,41 @@
     });
   }
 
+  function bindFocusDateFromWeekElement(element, source = 'week-interaction') {
+    const card = element?.closest?.('.schedule-week-item, .schedule-tree-card, .standalone-session-card, .v19-week-card');
+    const column = element?.closest?.('.week-day-column, [class*="week-day-column"], [class*="day-column"]');
+    const date = card ? bumpCardDate(card) : dateFromWeekColumn(column);
+    if (!localDate(date)) return '';
+    setFocusDateSilently(date, source);
+    const title = card ? text(card.querySelector(':scope > .workspace-item-main > strong, :scope > .v19-week-card-main > strong')) : '';
+    const scheduleBlockId = card?.dataset?.scheduleBlockId || card?.dataset?.blockId || card?.querySelector?.('[data-schedule-block-id]')?.dataset?.scheduleBlockId || '';
+    sessionStorage.setItem('classroom-v19-last-week-target', JSON.stringify({
+      date,
+      title,
+      scheduleBlockId,
+      source,
+      at: new Date().toISOString(),
+      expires: Date.now() + 15 * 60 * 1000
+    }));
+    return date;
+  }
+
+  function installWeekFocusDateBinding() {
+    const bind = (event, source) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (!target || !target.closest('.week-workspace')) return;
+      if (target.closest('[data-v19-bump]')) return;
+      const actionable = target.closest('.schedule-week-item, .schedule-tree-card, .standalone-session-card, .week-day-column, [class*="week-day-column"], [class*="day-column"]');
+      if (!actionable) return;
+      bindFocusDateFromWeekElement(target, source);
+    };
+    document.addEventListener('pointerdown', (event) => bind(event, 'week-pointer'), true);
+    document.addEventListener('keydown', (event) => {
+      if (!['Enter', ' '].includes(event.key)) return;
+      bind(event, 'week-keyboard');
+    }, true);
+  }
+
   function installPlanActionBridge() {
     document.addEventListener('click', (event) => {
       const button = event.target.closest('[data-v19-create-plan]');
@@ -1980,9 +2068,72 @@
       event.stopPropagation();
       event.stopImmediatePropagation();
       const card = button.closest('.schedule-week-item, .schedule-tree-card, .v19-week-card');
+      bindFocusDateFromWeekElement(card || button, 'create-plan');
       const nativeTarget = card?.querySelector(':scope > .workspace-item-main');
       if (nativeTarget instanceof HTMLElement) nativeTarget.click();
     }, true);
+  }
+
+  function summarizeLessonForDiagnostics(lesson) {
+    const block = scheduleBlockForLesson(lesson);
+    return {
+      id: String(lesson?.id || ''),
+      date: String(lesson?.date || ''),
+      status: String(lesson?.status || ''),
+      title: String(lesson?.title || ''),
+      block: String(lesson?.block || ''),
+      contextName: String(lesson?.contextName || ''),
+      scheduleBlockId: String(lesson?.scheduleBlockId || ''),
+      scheduleBlockName: String(block?.name || block?.title || block?.label || ''),
+      start: String(lesson?.start || lesson?.startTime || ''),
+      updatedAt: String(lesson?.updatedAt || lesson?.modifiedAt || '')
+    };
+  }
+
+  function captureWeekSnapshot() {
+    const cards = weekCards();
+    const route = parseHash();
+    const diagnostics = weekActionDiagnostics();
+    const snapshot = {
+      capturedAt: new Date().toISOString(),
+      routeHash: location.hash,
+      routeWeekDate: route.path === 'week' ? route.params.get('date') || '' : '',
+      visibleWeekDate: visibleWeekAnchorDate(),
+      focusDate: readJSON('cos-focus-date', ''),
+      cardCount: cards.length,
+      diagnostics,
+      cards: cards.map((card, index) => {
+        const lesson = lessonForBumpCard(card);
+        const statusNode = card.querySelector(':scope > .workspace-item-main .status-chip, :scope > .v19-week-card-main .status-chip');
+        const titleNode = card.querySelector(':scope > .workspace-item-main > strong, :scope > .v19-week-card-main > strong');
+        const subtitleNode = card.querySelector(':scope > .workspace-item-main > span:not(.workspace-item-time):not(.status-chip), :scope > .v19-week-card-main > span:not(.workspace-item-time):not(.status-chip)');
+        return {
+          index,
+          cardDate: bumpCardDate(card),
+          title: text(titleNode),
+          subtitle: text(subtitleNode),
+          visibleStatus: text(statusNode),
+          scheduleBlockId: String(card.dataset.scheduleBlockId || card.dataset.blockId || card.querySelector('[data-schedule-block-id]')?.dataset?.scheduleBlockId || ''),
+          matchedLesson: lesson ? summarizeLessonForDiagnostics(lesson) : null,
+          bumpCount: card.querySelectorAll('[data-v19-bump]').length,
+          planActionCount: card.querySelectorAll('[data-v19-create-plan]').length
+        };
+      }),
+      lessons: currentLessons().map(summarizeLessonForDiagnostics)
+    };
+    liveWeekSnapshot = snapshot;
+    sessionStorage.setItem('classroom-v19-live-week-snapshot', JSON.stringify(snapshot));
+    return snapshot;
+  }
+
+  function storedWeekSnapshot() {
+    if (liveWeekSnapshot) return liveWeekSnapshot;
+    try {
+      const snapshot = JSON.parse(sessionStorage.getItem('classroom-v19-live-week-snapshot') || 'null');
+      return snapshot && typeof snapshot === 'object' ? snapshot : null;
+    } catch {
+      return null;
+    }
   }
 
   function weekActionDiagnostics() {
@@ -2333,6 +2484,7 @@
     installViewInWeekFix();
     installNativeFlowSaveBridge();
     installBumpPreview();
+    installWeekFocusDateBinding();
     installPlanActionBridge();
     installKeyboardHistory();
     installNavClickSync();
@@ -2357,7 +2509,7 @@
         routeBootstrapPending = false;
         syncHashFromActiveNav();
       }, 360);
-      document.documentElement.dataset.classroomVersion = '19.2A.4';
+      document.documentElement.dataset.classroomVersion = '19.2A.5';
       console.info(`Classroom v${VERSION} workflow and navigation enhancements loaded.`);
     }, 60);
   }

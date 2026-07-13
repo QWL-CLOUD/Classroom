@@ -1856,7 +1856,7 @@ button.v19-metric {
   line-height: 1.15 !important;
 }
 
-/* Classroom v19.2A.4 — Route & Date Consistency */
+/* Classroom v19.2A.5 — Week Plan Date Binding & Diagnostics */
 .week-workspace .status-chip.v19-derived-week-status[data-v19-derived-status="needs-plan"] {
   background: #f3e7cc !important;
   color: #8a672c !important;
