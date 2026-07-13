@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.1';
+  const VERSION = '19.4.2';
   const KEYS = {
     templates: 'cos-planning-templates-v19',
     notices: 'cos-learner-notices-v19',
@@ -98,11 +98,55 @@
   }
   function cardTitle(card) { return text(card.querySelector(':scope > .workspace-item-main > strong, :scope > .v19-week-card-main > strong')); }
   function cardSubtitle(card) { return text(card.querySelector(':scope > .workspace-item-main > span:not(.workspace-item-time):not(.status-chip), :scope > .v19-week-card-main > span:not(.workspace-item-time):not(.status-chip)')); }
+  const WEEKDAY_INDEX = { sun:0, mon:1, tue:2, wed:3, thu:4, fri:5, sat:6 };
+  function weekdayIndex(value) {
+    const token = normalize(value).slice(0,3);
+    return Object.prototype.hasOwnProperty.call(WEEKDAY_INDEX, token) ? WEEKDAY_INDEX[token] : -1;
+  }
+  function blockDaySet(block) {
+    const blockId = String(block?.id || '').toUpperCase();
+    if (/^MT[-_]/.test(blockId)) return new Set([1,2,3,4]);
+    if (/^FR[-_]/.test(blockId)) return new Set([5]);
+    if (/^MWF[-_]/.test(blockId)) return new Set([1,3,5]);
+    if (/^(TTH|TUTH)[-_]/.test(blockId)) return new Set([2,4]);
+
+    const fields = [block?.days, block?.weekdays, block?.repeatDays, block?.day, block?.weekday, block?.dayName]
+      .flatMap((value) => Array.isArray(value) ? value : [value])
+      .filter((value) => value !== undefined && value !== null && String(value).trim());
+    const out = new Set();
+    const aliases = '(?:sun(?:day)?|mon(?:day)?|tue(?:sday)?|wed(?:nesday)?|thu(?:rsday)?|fri(?:day)?|sat(?:urday)?)';
+    fields.forEach((field) => {
+      const raw = String(field).toLowerCase().replace(/[–—]/g, '-').replace(/\./g, ' ');
+      const rangePattern = new RegExp(`(${aliases})\s*-\s*(${aliases})`, 'g');
+      let match;
+      while ((match = rangePattern.exec(raw))) {
+        const start = weekdayIndex(match[1]);
+        const end = weekdayIndex(match[2]);
+        if (start >= 0 && end >= 0) {
+          let cursor = start;
+          out.add(cursor);
+          while (cursor !== end) { cursor = (cursor + 1) % 7; out.add(cursor); if (out.size >= 7) break; }
+        }
+      }
+      const tokenPattern = new RegExp(aliases, 'g');
+      while ((match = tokenPattern.exec(raw))) {
+        const index = weekdayIndex(match[0]);
+        if (index >= 0) out.add(index);
+      }
+      if (/\bm\s*-\s*th\b/.test(raw) || /monday\s+through\s+thursday/.test(raw)) [1,2,3,4].forEach((day) => out.add(day));
+      if (/\bt\s*(?:\/|&|and)\s*th\b/.test(raw)) [2,4].forEach((day) => out.add(day));
+    });
+    return out;
+  }
+  function blockAppliesToWeekday(block, weekday) {
+    const index = weekdayIndex(weekday);
+    const days = blockDaySet(block);
+    return index < 0 || !days.size || days.has(index);
+  }
   function blockMatchesCard(block, card) {
     const date = card.dataset.v19StableDate || card.dataset.date || card.dataset.v19CardDate || '';
     const weekday = weekdayForDate(date);
-    const blockDay = String(block.day || block.weekday || block.dayName || '').toLowerCase();
-    if (weekday && blockDay && !blockDay.startsWith(weekday.toLowerCase().slice(0,3))) return false;
+    if (weekday && !blockAppliesToWeekday(block, weekday)) return false;
     const range = cardTimeRange(card);
     const start = toMinutes(block.start ?? block.startTime);
     const end = toMinutes(block.end ?? block.endTime);
@@ -208,7 +252,7 @@
   function openModal(content, className='') {
     document.querySelector('.v194-modal-overlay')?.remove();
     const overlay = document.createElement('div');
-    overlay.className = `v19-modal-overlay v194-modal-overlay ${className}`;
+    overlay.className = `v19-modal-backdrop v19-modal-overlay v194-modal-overlay ${className}`;
     overlay.innerHTML = `<div class="v19-modal v194-modal">${content}</div>`;
     document.body.appendChild(overlay);
     const close = () => overlay.remove();
@@ -327,6 +371,118 @@
       });
     });
   }
+  function nativeWeekButton(week, pattern) {
+    return [...week.querySelectorAll('button')].find((button) => !button.closest('[data-v1942-week-header]') && pattern.test(text(button))) || null;
+  }
+  function nativeWeekSelect(week) {
+    return [...week.querySelectorAll('select')].find((select) => !select.closest('[data-v1942-week-header]')) || null;
+  }
+  function nativeWeekendCheckbox(week) {
+    return [...week.querySelectorAll('input[type="checkbox"]')].find((input) => {
+      if (input.closest('[data-v1942-week-header]')) return false;
+      const label = input.closest('label');
+      return /show weekends|weekends/i.test(text(label || input.parentElement));
+    }) || null;
+  }
+  function weekDateRangeLabel(week) {
+    const routeStart = diagnostics().visibleWeekAnchorDate?.() || diagnostics().visibleWeekRouteDate?.() || '';
+    if (validDate(routeStart)) {
+      const start = new Date(`${routeStart}T12:00:00`);
+      const end = new Date(start); end.setDate(start.getDate() + 6);
+      const left = start.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+      const right = end.toLocaleDateString('en-US', { month:start.getMonth()===end.getMonth() ? undefined : 'short', day:'numeric' });
+      return `${left} – ${right}`;
+    }
+    const candidate = [...week.querySelectorAll('p,span,small,div')]
+      .filter((node) => !node.closest('[data-v1942-week-header]'))
+      .find((node) => /^[A-Z][a-z]{2}\s+\d{1,2}\s*[–—-]\s*(?:[A-Z][a-z]{2}\s+)?\d{1,2}$/.test(text(node)));
+    return text(candidate) || 'Current teaching week';
+  }
+  function hideNativeWeekControl(node, shell=false) {
+    if (!node) return;
+    const target = shell ? node.parentElement : node;
+    if (target) target.classList.add('v1942-native-week-control');
+  }
+  function installWeekHeader() {
+    const week = document.querySelector('.week-workspace');
+    if (!week) return;
+    week.querySelectorAll('[data-v194-week-templates]').forEach((button) => button.remove());
+
+    let panel = week.querySelector('[data-v1942-week-header]');
+    if (!panel) {
+      panel = document.createElement('section');
+      panel.dataset.v1942WeekHeader = 'true';
+      panel.className = 'v1942-week-header';
+      panel.innerHTML = `
+        <div class="v1942-week-title-row">
+          <div class="v1942-week-title"><span>WORKSPACE</span><h1>Week</h1><p data-v1942-week-range></p></div>
+          <div class="v1942-week-nav" role="group" aria-label="Week navigation">
+            <button type="button" data-v1942-week-action="previous" aria-label="Previous week">‹ <span>Previous</span></button>
+            <button type="button" class="today" data-v1942-week-action="today">This week</button>
+            <button type="button" data-v1942-week-action="next" aria-label="Next week"><span>Next</span> ›</button>
+          </div>
+        </div>
+        <div class="v1942-week-tools-row">
+          <label class="v1942-week-filter"><span>View</span><select data-v1942-week-filter aria-label="Week view filter"></select></label>
+          <div class="v1942-week-tools">
+            <label class="v1942-weekend-toggle"><input type="checkbox" data-v1942-weekends><span class="track" aria-hidden="true"></span><span>Weekends</span></label>
+            <button type="button" class="v1942-template-launcher" data-v1942-open-templates>Lesson templates</button>
+          </div>
+        </div>`;
+      week.prepend(panel);
+      panel.querySelector('[data-v1942-week-action="previous"]').addEventListener('click', () => nativeWeekButton(week, /^(previous|prev)\b|‹|←/i)?.click());
+      panel.querySelector('[data-v1942-week-action="today"]').addEventListener('click', () => nativeWeekButton(week, /^this week$|^today$/i)?.click());
+      panel.querySelector('[data-v1942-week-action="next"]').addEventListener('click', () => nativeWeekButton(week, /^next\b|›|→/i)?.click());
+      panel.querySelector('[data-v1942-open-templates]').addEventListener('click', () => openTemplateManager(null));
+      panel.querySelector('[data-v1942-week-filter]').addEventListener('change', (event) => {
+        const native = nativeWeekSelect(week); if (!native) return;
+        native.value = event.currentTarget.value;
+        native.dispatchEvent(new Event('change', { bubbles:true }));
+      });
+      panel.querySelector('[data-v1942-weekends]').addEventListener('change', (event) => {
+        const native = nativeWeekendCheckbox(week); if (!native) return;
+        if (native.checked !== event.currentTarget.checked) native.click();
+      });
+    }
+
+    panel.querySelector('[data-v1942-week-range]').textContent = weekDateRangeLabel(week);
+    const templateButton = panel.querySelector('[data-v1942-open-templates]');
+    const activeTemplateCount = templates().filter((item) => !item.archived).length;
+    templateButton.textContent = activeTemplateCount ? `Lesson templates · ${activeTemplateCount}` : 'Lesson templates';
+
+    const sourceSelect = nativeWeekSelect(week);
+    const proxySelect = panel.querySelector('[data-v1942-week-filter]');
+    if (sourceSelect && proxySelect) {
+      const signature = [...sourceSelect.options].map((option) => `${option.value}:${option.textContent}`).join('|');
+      if (proxySelect.dataset.optionsSignature !== signature) {
+        proxySelect.innerHTML = [...sourceSelect.options].map((option) => `<option value="${esc(option.value)}">${esc(option.textContent)}</option>`).join('');
+        proxySelect.dataset.optionsSignature = signature;
+      }
+      proxySelect.value = sourceSelect.value;
+      hideNativeWeekControl(sourceSelect.closest('label') || sourceSelect.parentElement);
+    }
+    const sourceWeekend = nativeWeekendCheckbox(week);
+    const proxyWeekend = panel.querySelector('[data-v1942-weekends]');
+    if (sourceWeekend && proxyWeekend) {
+      proxyWeekend.checked = sourceWeekend.checked;
+      hideNativeWeekControl(sourceWeekend.closest('label') || sourceWeekend.parentElement);
+    }
+
+    const heading = [...week.querySelectorAll('h1,h2')].find((node) => !node.closest('[data-v1942-week-header]') && /^week$/i.test(text(node)));
+    if (heading) {
+      const shell = heading.parentElement;
+      if (shell && shell.querySelectorAll('button,select,input').length === 0) hideNativeWeekControl(shell);
+      else hideNativeWeekControl(heading);
+    }
+    const navButtons = [
+      nativeWeekButton(week, /^(previous|prev)\b|‹|←/i),
+      nativeWeekButton(week, /^this week$|^today$/i),
+      nativeWeekButton(week, /^next\b|›|→/i)
+    ].filter(Boolean);
+    const navParent = navButtons.length === 3 && navButtons.every((button) => button.parentElement === navButtons[0].parentElement) ? navButtons[0].parentElement : null;
+    if (navParent) hideNativeWeekControl(navParent); else navButtons.forEach((button) => hideNativeWeekControl(button));
+    document.documentElement.dataset.v1942WeekHeader = 'true';
+  }
   function installTemplateControls() {
     document.querySelectorAll('.planning-editor .v19-flow-editor').forEach((shell) => {
       const editor = shell.closest('.planning-editor');
@@ -340,11 +496,7 @@
       group.querySelector('[data-v194-save-template]').addEventListener('click',()=>openSaveTemplate(editor));
       group.querySelector('[data-v194-manage-template]').addEventListener('click',()=>openTemplateManager(editor));
     });
-    const week=document.querySelector('.week-workspace');
-    if(week && !week.querySelector('[data-v194-week-templates]')){
-      const host=week.querySelector('.header-actions,[class*="header-actions"],header')||week;
-      const button=document.createElement('button'); button.type='button'; button.dataset.v194WeekTemplates='true'; button.className='v19-secondary-button v194-week-template-button'; button.textContent='Templates'; button.addEventListener('click',()=>openTemplateManager(null)); host.appendChild(button);
-    }
+    installWeekHeader();
   }
 
   function installFlowDragAndCollapse() {
@@ -498,10 +650,10 @@
 
   function scheduleMaintenance(){if(maintenanceQueued)return;maintenanceQueued=true;requestAnimationFrame(()=>{maintenanceQueued=false;maintain()})}
   function maintain(){decorateStableBlockLinks();installTemplateControls();installFlowDragAndCollapse();installLearnerSupportTab();renderTodayNotices()}
-  function start(){migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4';console.info('Classroom v19.4 Lesson & Learner Workflow loaded.')},60)}
+  function start(){migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.2';console.info('Classroom v19.4.2 Week Header & Templates loaded.')},60)}
 
   window.ClassroomV19WorkflowDiagnostics={
-    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager
+    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

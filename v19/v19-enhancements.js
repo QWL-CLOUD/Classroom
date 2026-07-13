@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.1';
-  const RELEASE_LABEL = 'v19.4.1 · Learner Week Navigation Hotfix';
+  const VERSION = '19.4.2';
+  const RELEASE_LABEL = 'v19.4.2 · Week Header & Template Repair';
   const ROUTES = {
     today: { label: 'Today', path: 'today', aliases: ['Today', 'Today workspace', 'Home'] },
     week: { label: 'Week', path: 'week', aliases: ['Week', 'Weekly planner', 'Week workspace'] },
@@ -1560,8 +1560,19 @@
       return blocks.length !== (Array.isArray(template.flowBlocks) ? template.flowBlocks.length : 0);
     }).length;
     const invalidNoticeDates = notices.filter((notice) => (notice.startDate && !localDate(notice.startDate)) || (notice.endDate && (!localDate(notice.endDate) || (notice.startDate && notice.endDate < notice.startDate)))).length;
+    const containsActiveLunarName = (record) => {
+      const auditKeys = new Set(['rawText', 'sourceRecord', 'source', '_importFile', 'originalText']);
+      const visit = (value, key = '') => {
+        if (auditKeys.has(key)) return false;
+        if (typeof value === 'string') return /lunar new year/i.test(value);
+        if (Array.isArray(value)) return value.some((item) => visit(item, key));
+        if (value && typeof value === 'object') return Object.entries(value).some(([childKey, child]) => visit(child, childKey));
+        return false;
+      };
+      return visit(record);
+    };
     const activeLunarNames = [events, lessons, readJSON('cos-materials', []), readJSON('cos-toolkit', []), templates, notices]
-      .flat().filter((record) => /lunar new year/i.test(JSON.stringify(record || {}))).length;
+      .flat().filter(containsActiveLunarName).length;
 
     const parsedRoute = parseHash();
     const routeWeekDate = currentWeekSnapshot?.routeWeekDate || savedWeekSnapshot?.routeWeekDate || (parsedRoute.path === 'week' ? parsedRoute.params.get('date') || '' : '');
@@ -1784,8 +1795,14 @@
       hideCustomPage();
       button.click();
       await delay(['import', 'export'].includes(route.path) ? 520 : 150);
-      const active = button.classList.contains('active');
       const page = document.querySelector('.main-panel .page');
+      const pageHeading = text(page?.querySelector('h1, h2, [class*="page-title"]'));
+      const hashPath = parseHash().path;
+      const labelToken = normalizeRouteToken(route.label.split('&')[0]);
+      const active = button.classList.contains('active')
+        || button.getAttribute('aria-current') === 'page'
+        || hashPath === route.path
+        || (pageHeading && normalizeRouteToken(pageHeading).includes(labelToken));
       const addEntries = page ? [...page.querySelectorAll('button')].filter((candidate) => /^(Add|New|Create)\b/i.test(text(candidate))).length : 0;
       checks.push({
         name: `${route.label} connection`,
@@ -2743,7 +2760,7 @@
         routeBootstrapPending = false;
         syncHashFromActiveNav();
       }, 360);
-      document.documentElement.dataset.classroomVersion = '19.4.1';
+      document.documentElement.dataset.classroomVersion = '19.4.2';
       console.info(`Classroom v${VERSION} lesson and learner workflow loaded.`);
     }, 60);
   }
