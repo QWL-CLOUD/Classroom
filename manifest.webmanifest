@@ -1,12 +1,12 @@
 {
-  "name": "Classroom v19.2A.3 · Undo/Redo Route Preservation",
-  "short_name": "Classroom v19.2A.3",
-  "description": "Preserves the active Classroom route and Week date after Undo and Redo.",
+  "name": "Classroom v19.4.1 \u00b7 Learner Week Navigation Hotfix",
+  "short_name": "Classroom v19.4.1",
+  "description": "Safe Learner-to-Week navigation, lesson record sanitization, and the v19.4 Lesson & Learner Workflow.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F5F3EE",
   "theme_color": "#334B4F",
-  "version": "19.2.3",
+  "version": "19.4.1",
   "icons": []
 }
