@@ -1688,3 +1688,170 @@ button.v19-metric {
     grid-template-columns: 84px minmax(0, 1fr) !important;
   }
 }
+
+/* Classroom v19.2A.2 — Week Final Stabilization */
+.week-workspace .v19-week-card {
+  container-type: inline-size;
+}
+
+/* The native Week grid can be only 180px wide per day. Keep the title readable
+   instead of consuming most of the card with the action rail. */
+.week-workspace .v19-week-card > .v19-week-card-main {
+  padding: 10px 45px 10px 11px !important;
+  gap: 3px !important;
+}
+
+.week-workspace .v19-week-card .v19-week-card-time {
+  font-size: 12px !important;
+  letter-spacing: .01em !important;
+}
+
+.week-workspace .v19-week-card .v19-week-card-title {
+  -webkit-line-clamp: 3 !important;
+  font-size: 16px !important;
+  line-height: 1.14 !important;
+  font-weight: 760 !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  hyphens: none !important;
+}
+
+.week-workspace .v19-week-card .v19-week-card-subtitle {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+
+.week-workspace .v19-week-card .v19-week-status {
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+}
+
+/* Override the earlier percentage-based heuristic even when the production DOM
+   is wrapped differently than expected. */
+.week-workspace .v19-week-card .v19-week-flow-row {
+  grid-template-columns: 78px minmax(0, 1fr) !important;
+  grid-template-rows: auto auto !important;
+  grid-template-areas:
+    "time title"
+    "time status" !important;
+  column-gap: 8px !important;
+  row-gap: 2px !important;
+  min-height: 0 !important;
+  padding: 9px 10px !important;
+}
+
+.week-workspace .v19-week-card .v19-week-flow-time {
+  grid-area: time !important;
+  font-size: 10px !important;
+  line-height: 1.25 !important;
+}
+
+.week-workspace .v19-week-card .v19-week-flow-title {
+  grid-area: title !important;
+  -webkit-line-clamp: 2 !important;
+  font-size: 12px !important;
+  line-height: 1.22 !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
+.week-workspace .v19-week-card .v19-week-flow-status {
+  grid-area: status !important;
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+}
+
+/* At the real seven-column width, stack each child row vertically. This is
+   substantially more readable than reducing Strong Start to “Stron g…”. */
+@container (max-width: 215px) {
+  .week-workspace .v19-week-card .v19-week-flow-row {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+    grid-template-areas:
+      "time"
+      "title"
+      "status" !important;
+    gap: 3px !important;
+  }
+
+  .week-workspace .v19-week-card .v19-week-flow-time,
+  .week-workspace .v19-week-card .v19-week-flow-title,
+  .week-workspace .v19-week-card .v19-week-flow-status {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .week-workspace .v19-week-card .v19-week-flow-title {
+    -webkit-line-clamp: 2 !important;
+  }
+}
+
+/* Planned cards get Bump; empty Schedule Blocks get Create plan. Both use a
+   consistent, accessible icon-sized target. */
+.v19-plan-icon-button,
+.v19-bump-icon-button {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  min-height: 30px !important;
+  display: inline-grid !important;
+  place-items: center !important;
+  padding: 0 !important;
+  border-radius: 9px !important;
+}
+
+.v19-plan-icon-button {
+  appearance: none;
+  margin: 0 !important;
+  border: 1px solid rgba(151, 112, 48, .2) !important;
+  background: rgba(250, 244, 230, .95) !important;
+  color: #8a672c !important;
+  box-shadow: 0 2px 8px rgba(35, 54, 56, .06);
+  cursor: pointer;
+}
+
+.v19-plan-icon-button:hover {
+  background: #f3e7cc !important;
+  border-color: rgba(151, 112, 48, .34) !important;
+}
+
+.v19-plan-icon-button svg {
+  width: 16px !important;
+  height: 16px !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.9 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  pointer-events: none !important;
+}
+
+.v19-plan-icon-button:focus-visible,
+.v19-bump-icon-button:focus-visible {
+  outline: 3px solid rgba(83, 132, 139, .28) !important;
+  outline-offset: 2px !important;
+}
+
+/* Avoid an oversized empty footer below the Child Blocks. */
+.week-workspace .v19-week-card > .workspace-item-actions {
+  min-height: 30px !important;
+  padding: 3px 6px !important;
+}
+
+.week-workspace .v19-week-card > .workspace-item-actions button {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+/* Slightly reduce the visual dominance of day headings without changing the
+   day-column structure. */
+.week-workspace .day-title-button {
+  font-size: 15px !important;
+  line-height: 1.12 !important;
+}
+
+.week-workspace .day-title-button > span,
+.week-workspace .day-column-header span {
+  font-size: 10.5px !important;
+  line-height: 1.15 !important;
+}

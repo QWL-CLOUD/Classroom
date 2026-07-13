@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.2.1';
-  const RELEASE_LABEL = 'v19.2A.1 · Navigation & Week Hotfix';
+  const VERSION = '19.2.2';
+  const RELEASE_LABEL = 'v19.2A.2 · Week Final Stabilization';
   const ROUTES = {
     today: { label: 'Today', path: 'today', aliases: ['Today', 'Today workspace', 'Home'] },
     week: { label: 'Week', path: 'week', aliases: ['Week', 'Weekly planner', 'Week workspace'] },
@@ -28,7 +28,8 @@
     redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7 5 5-5 5"/><path d="M20 12h-9a6 6 0 0 0-6 6"/></svg>',
     close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg>',
     check: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>',
-    bump: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h7a5 5 0 0 1 5 5v5"/><path d="m14 14 4 4 4-4"/><path d="M6 4v6H3"/></svg>'
+    bump: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 7h7a5 5 0 0 1 5 5v5"/><path d="m14 14 4 4 4-4"/><path d="M6 4v6H3"/></svg>',
+    plan: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>'
   };
 
   let routeLock = false;
@@ -1330,6 +1331,8 @@
     const unresolvedRouteTargets = routeConnections.filter((item) => !item.targetFound).map((item) => item.label);
     const quarantine = readJSON('cos-calendar-quarantine-v19', []);
     const repair = readJSON('cos-calendar-repair-v19', calendarRepairResult || {});
+    const weekActions = weekActionDiagnostics();
+    const duplicateLessonIds = lessons.length - new Set(lessons.map((lesson) => String(lesson.id || ''))).size;
 
     const tests = [
       { name: 'Local data can be read', status: parseFailures.length ? 'fail' : 'pass', detail: parseFailures.length ? `Unreadable: ${parseFailures.join(', ')}` : `${keys.length - parseFailures.length} data stores checked` },
@@ -1341,6 +1344,8 @@
       { name: 'Parent / child schedule links resolve', status: orphanChildren.length ? 'fail' : 'pass', detail: `${orphanChildren.length} orphan child block(s)` },
       { name: 'Main page connections exist', status: missingRoutes.length ? 'fail' : unresolvedRouteTargets.length ? 'warning' : 'pass', detail: missingRoutes.length ? `Missing registrations: ${missingRoutes.join(', ')}` : unresolvedRouteTargets.length ? `Registered; trigger pending: ${unresolvedRouteTargets.join(', ')}` : 'All main routes registered and connected' },
       { name: 'Undo / Redo controls are available', status: document.querySelector('.v19-history-toolbar') ? 'pass' : 'fail', detail: 'Icon-only controls in the top toolbar' },
+      { name: 'Week lesson actions are consistent', status: weekActions.issueCount ? 'fail' : 'pass', detail: weekActions.mountedCards ? `${weekActions.mountedCards} mounted card(s) · ${weekActions.issueCount} action mismatch(es)` : 'No Week cards currently mounted · no stored action mismatch detected' },
+      { name: 'Lesson records have unique IDs', status: duplicateLessonIds ? 'fail' : 'pass', detail: `${duplicateLessonIds} duplicate lesson ID(s)` },
       { name: 'PDF calendar batch identified', status: latestPdfBatch || acceptanceEvents.length === 27 ? 'pass' : 'warning', detail: latestPdfBatch ? `${latestPdfBatch.fileName || 'PDF import'} · ${acceptanceEvents.length} linked event(s)` : `${acceptanceEvents.length || events.length} candidate event(s)` },
       { name: '27-event acceptance set is complete', status: acceptanceEvents.length === 27 ? 'pass' : 'warning', detail: `${acceptanceEvents.length} of 27 events identified` }
     ];
@@ -1375,7 +1380,7 @@
       },
       tests,
       eventResults,
-      details: { parseFailures, invalidDates, invalidEndDates, invalidTimes, duplicateCount, orphanChildren, missingRoutes, unresolvedRouteTargets, routeConnections: routeConnections.map(({ trigger, ...item }) => item), repair, quarantine }
+      details: { parseFailures, invalidDates, invalidEndDates, invalidTimes, duplicateCount, orphanChildren, missingRoutes, unresolvedRouteTargets, routeConnections: routeConnections.map(({ trigger, ...item }) => item), weekActions, duplicateLessonIds, repair, quarantine }
     };
   }
 
@@ -1427,7 +1432,7 @@
       showToast(`Calendar repaired · ${result.normalized} normalized · ${result.quarantined} quarantined`, true);
       renderSystemHealth();
     });
-    root.querySelector('[data-export-health]')?.addEventListener('click', () => downloadJSON(report, `Classroom-v19.1-system-health-${toDateString(new Date())}.json`));
+    root.querySelector('[data-export-health]')?.addEventListener('click', () => downloadJSON(report, `Classroom-v${VERSION}-system-health-${toDateString(new Date())}.json`));
     root.querySelector('[data-run-live]')?.addEventListener('click', runLiveAcceptance);
   }
 
@@ -1462,6 +1467,16 @@
         status: active && page ? 'pass' : 'fail',
         detail: active && page ? `Page opened in the current app session · ${addEntries} visible Add/New entry point(s).` : 'Page did not become active.'
       });
+      if (route.path === 'week' && active && page) {
+        maintainEnhancements();
+        await delay(80);
+        const diagnostics = weekActionDiagnostics();
+        checks.push({
+          name: 'Week lesson/action consistency',
+          status: diagnostics.issueCount ? 'fail' : 'pass',
+          detail: `${diagnostics.mountedCards} card(s) checked · ${diagnostics.issueCount} mismatch(es).`
+        });
+      }
     }
     const oldHash = location.hash;
     history.pushState({ test: true }, '', '#/week');
@@ -1558,22 +1573,53 @@
     const lessons = currentLessons();
     const date = bumpCardDate(card);
     const content = text(card).toLowerCase();
-    const candidates = lessons.filter((lesson) => !date || lesson.date === date).map((lesson) => {
-      let score = date && lesson.date === date ? 8 : 0;
-      const block = String(lesson.block || '').trim().toLowerCase();
+    const directLessonId = card?.dataset?.lessonId
+      || card?.querySelector?.('[data-lesson-id]')?.dataset?.lessonId
+      || '';
+    const cardIds = new Set([
+      card?.dataset?.scheduleBlockId,
+      card?.dataset?.blockId,
+      card?.dataset?.recordId,
+      card?.querySelector?.('[data-schedule-block-id]')?.dataset?.scheduleBlockId,
+      card?.querySelector?.('[data-block-id]')?.dataset?.blockId
+    ].filter(Boolean).map(String));
+
+    const scoreLesson = (lesson) => {
+      let score = date && lesson.date === date ? 10 : 0;
+      if (directLessonId && String(lesson.id) === String(directLessonId)) score += 100;
+      if (lesson.scheduleBlockId && cardIds.has(String(lesson.scheduleBlockId))) score += 30;
+
+      const blockRecord = scheduleBlockForLesson(lesson);
+      const nameTokens = [
+        lesson.block,
+        lesson.title,
+        blockRecord?.name,
+        blockRecord?.title,
+        blockRecord?.label
+      ].map((value) => String(value || '').trim().toLowerCase()).filter((value) => value.length >= 3);
+      if (nameTokens.some((token) => content.includes(token))) score += 10;
+
       const context = String(lesson.contextName || '').trim().toLowerCase();
-      if (block && content.includes(block)) score += 7;
       if (context && content.includes(context)) score += 4;
-      if (lesson.start && content.includes(String(lesson.start).toLowerCase())) score += 2;
-      if (lesson.startTime && content.includes(String(lesson.startTime).toLowerCase())) score += 2;
+      if (lesson.start && content.includes(String(lesson.start).toLowerCase())) score += 3;
+      if (lesson.startTime && content.includes(String(lesson.startTime).toLowerCase())) score += 3;
       return { lesson, score };
-    }).sort((a, b) => b.score - a.score);
-    if (candidates[0] && (candidates[0].score >= 8 || candidates.length === 1)) return candidates[0].lesson;
-    const allScored = lessons.map((lesson) => {
-      const block = String(lesson.block || '').trim().toLowerCase();
-      return { lesson, score: block && content.includes(block) ? 5 : 0 };
-    }).filter((item) => item.score).sort((a, b) => b.score - a.score);
-    return allScored.length === 1 ? allScored[0].lesson : null;
+    };
+
+    // A dated Week card may only match a lesson on that exact date. It must
+    // also match a lesson/block identifier or visible block name. Date alone
+    // is not enough because several Schedule Blocks can share the same day.
+    if (localDate(date)) {
+      const exact = lessons.filter((lesson) => lesson.date === date).map(scoreLesson).sort((a, b) => b.score - a.score);
+      if (!exact.length) return null;
+      if (exact[0].score >= 40) return exact[0].lesson;
+      if (exact[0].score >= 20 && exact[0].score > (exact[1]?.score || 0)) return exact[0].lesson;
+      if (card.classList.contains('standalone-session-card') && exact.length === 1) return exact[0].lesson;
+      return null;
+    }
+
+    const scored = lessons.map(scoreLesson).filter((item) => item.score >= 10).sort((a, b) => b.score - a.score);
+    return scored[0] && scored[0].score > (scored[1]?.score || 0) ? scored[0].lesson : null;
   }
 
   function leafTextElements(root) {
@@ -1607,10 +1653,13 @@
       const main = card.querySelector(':scope > .workspace-item-main');
       if (main) {
         main.classList.add('v19-week-card-main', 'v19-week-card-head');
-        main.querySelector(':scope > .workspace-item-time')?.classList.add('v19-week-card-time');
+        const timeNode = main.querySelector(':scope > .workspace-item-time');
+        const statusNode = main.querySelector(':scope > .status-chip');
+        const subtitleNode = [...main.querySelectorAll(':scope > span')].find((node) => node !== timeNode && node !== statusNode);
+        timeNode?.classList.add('v19-week-card-time');
         main.querySelector(':scope > strong')?.classList.add('v19-week-card-title');
-        main.querySelector(':scope > span')?.classList.add('v19-week-card-subtitle');
-        main.querySelector(':scope > .status-chip')?.classList.add('v19-week-status');
+        subtitleNode?.classList.add('v19-week-card-subtitle');
+        statusNode?.classList.add('v19-week-status');
       }
       decorateWeekFlowRows(card);
     });
@@ -1629,45 +1678,169 @@
   }
 
   function lessonCanBump(lesson) {
-    if (!lesson || !localDate(lesson.date)) return false;
+    if (!lesson || !lesson.id || !localDate(lesson.date)) return false;
     const status = normalizeRouteToken(lesson.status);
-    if (['completed', 'cancelled', 'canceled', 'archived'].includes(status)) return false;
+    if (['completed', 'taught', 'cancelled', 'canceled', 'archived'].includes(status)) return false;
     if (lesson.locked === true || lesson.isLocked === true) return false;
     return true;
   }
 
-  function installBumpButtons() {
+  function weekCards() {
     const selector = [
-      '.planning-list-card', '.lesson-block.planned', '.standalone-plan',
-      '.week-workspace .schedule-week-item.has-plan', '.week-workspace .standalone-session-card',
-      '.week-workspace .schedule-tree-card.has-plan', '.week-workspace [data-lesson-id]'
+      '.week-workspace .schedule-week-item',
+      '.week-workspace .schedule-tree-card',
+      '.week-workspace .standalone-session-card'
     ].join(',');
+    return [...document.querySelectorAll(selector)].filter((card, index, all) => all.indexOf(card) === index);
+  }
+
+  function lessonStatusLabel(lesson) {
+    const raw = String(lesson?.status || '').trim();
+    if (!raw) return 'Planned';
+    const normalized = normalizeRouteToken(raw);
+    if (normalized === 'taught') return 'Completed';
+    return raw.replace(/(^|[\s_-])([a-z])/g, (_, prefix, letter) => `${prefix}${letter.toUpperCase()}`);
+  }
+
+  function syncWeekCardStatus(card, lesson) {
+    const status = card.querySelector(':scope > .workspace-item-main .status-chip, :scope > .v19-week-card-main .status-chip');
+    card.classList.toggle('has-plan', Boolean(lesson));
+    card.classList.toggle('needs-plan', !lesson);
+    card.dataset.v19LessonState = lesson ? 'planned' : 'needs-plan';
+    if (!status) return;
+    const label = lesson ? lessonStatusLabel(lesson) : 'Needs plan';
+    if (text(status) !== label) status.textContent = label;
+    status.dataset.v19DerivedStatus = lesson ? normalizeRouteToken(lesson.status || 'planned') : 'needs-plan';
+  }
+
+  function removeEmptyWeekActions(card) {
+    const actions = card.querySelector(':scope > .v19-week-card-actions');
+    if (actions && !actions.children.length) actions.remove();
+  }
+
+  function ensurePlanButton(card) {
+    const actions = ensureWeekCardActions(card);
+    let button = card.querySelector(':scope > .v19-week-card-actions [data-v19-create-plan]');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.v19CreatePlan = 'true';
+      button.className = 'v19-plan-icon-button';
+      button.innerHTML = ICONS.plan;
+      actions.appendChild(button);
+    }
+    button.title = 'Create lesson plan';
+    button.setAttribute('aria-label', 'Create lesson plan');
+    return button;
+  }
+
+  function ensureBumpButton(card, lesson) {
+    const actions = ensureWeekCardActions(card);
+    let button = card.querySelector(':scope > .v19-week-card-actions [data-v19-bump]');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.v19Bump = 'true';
+      actions.prepend(button);
+    }
+    button.classList.remove('v19-bump-button');
+    button.classList.add('v19-bump-icon-button');
+    button.dataset.v19LessonId = String(lesson.id);
+    button.dataset.v19LessonDate = String(lesson.date);
+    if (button.dataset.v19Icon !== 'shift-forward') {
+      button.innerHTML = ICONS.bump;
+      button.dataset.v19Icon = 'shift-forward';
+    }
+    button.title = 'Bump this lesson forward';
+    button.setAttribute('aria-label', 'Bump this lesson forward');
+    return button;
+  }
+
+  function reconcileWeekCardActions(card) {
+    const lesson = lessonForBumpCard(card);
+    const existingBumps = [...card.querySelectorAll('[data-v19-bump]')];
+    const existingPlans = [...card.querySelectorAll('[data-v19-create-plan]')];
+    syncWeekCardStatus(card, lesson);
+
+    if (lessonCanBump(lesson)) {
+      existingPlans.forEach((button) => button.remove());
+      existingBumps.slice(1).forEach((button) => button.remove());
+      const bump = ensureBumpButton(card, lesson);
+      if (String(bump.dataset.v19LessonId) !== String(lesson.id)) bump.dataset.v19LessonId = String(lesson.id);
+    } else {
+      existingBumps.forEach((button) => button.remove());
+      const isSchedulePlaceholder = card.classList.contains('schedule-week-item') || card.classList.contains('schedule-tree-card');
+      const status = normalizeRouteToken(lesson?.status);
+      const canCreatePlan = !lesson && isSchedulePlaceholder && !['completed', 'taught', 'locked'].includes(status);
+      if (canCreatePlan) {
+        existingPlans.slice(1).forEach((button) => button.remove());
+        ensurePlanButton(card);
+      } else {
+        existingPlans.forEach((button) => button.remove());
+      }
+    }
+    removeEmptyWeekActions(card);
+  }
+
+  function installBumpButtons() {
+    // Reconcile every Week card, including cards that just lost their has-plan
+    // class. This removes stale buttons after Bump, Undo, Redo, or deletion.
+    weekCards().forEach(reconcileWeekCardActions);
+
+    // Preserve Bump support in non-Week planning lists without allowing a
+    // dated Week card to match a lesson from another date.
+    const selector = '.planning-list-card, .lesson-block.planned, .standalone-plan';
     document.querySelectorAll(selector).forEach((card) => {
+      if (card.closest('.week-workspace')) return;
       const lesson = lessonForBumpCard(card);
       const existing = card.querySelector('[data-v19-bump]');
       if (!lessonCanBump(lesson)) {
         existing?.remove();
         return;
       }
-      card.classList.add('v19-week-card');
-      const actions = ensureWeekCardActions(card);
-      let button = existing;
-      if (!button) {
-        button = document.createElement('button');
-        button.type = 'button';
-        button.dataset.v19Bump = 'true';
-      }
-      button.classList.remove('v19-bump-button');
-      button.classList.add('v19-bump-icon-button');
-      if (button.parentElement !== actions) actions.prepend(button);
-      button.dataset.v19LessonId = String(lesson.id);
-      if (button.dataset.v19Icon !== 'shift-forward') {
-        button.innerHTML = ICONS.bump;
-        button.dataset.v19Icon = 'shift-forward';
-      }
-      button.title = 'Bump this session forward';
-      button.setAttribute('aria-label', 'Bump this session forward');
+      ensureBumpButton(card, lesson);
     });
+  }
+
+  function installPlanActionBridge() {
+    document.addEventListener('click', (event) => {
+      const button = event.target.closest('[data-v19-create-plan]');
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      const card = button.closest('.schedule-week-item, .schedule-tree-card, .v19-week-card');
+      const nativeTarget = card?.querySelector(':scope > .workspace-item-main');
+      if (nativeTarget instanceof HTMLElement) nativeTarget.click();
+    }, true);
+  }
+
+  function weekActionDiagnostics() {
+    const cards = weekCards();
+    const result = {
+      mountedCards: cards.length,
+      staleBumps: 0,
+      missingBumps: 0,
+      duplicateBumps: 0,
+      needsPlanWithBump: 0,
+      plannedWithPlanAction: 0,
+      buttonsWithoutLessonId: 0
+    };
+    cards.forEach((card) => {
+      const lesson = lessonForBumpCard(card);
+      const bumps = [...card.querySelectorAll('[data-v19-bump]')];
+      const plans = [...card.querySelectorAll('[data-v19-create-plan]')];
+      if (bumps.length > 1) result.duplicateBumps += bumps.length - 1;
+      if (!lesson && bumps.length) result.needsPlanWithBump += bumps.length;
+      if (lesson && plans.length) result.plannedWithPlanAction += plans.length;
+      if (lessonCanBump(lesson) && !bumps.length) result.missingBumps += 1;
+      bumps.forEach((button) => {
+        if (!button.dataset.v19LessonId) result.buttonsWithoutLessonId += 1;
+        if (!lesson || String(button.dataset.v19LessonId) !== String(lesson.id)) result.staleBumps += 1;
+      });
+    });
+    result.issueCount = result.staleBumps + result.missingBumps + result.duplicateBumps + result.needsPlanWithBump + result.plannedWithPlanAction + result.buttonsWithoutLessonId;
+    return result;
   }
 
   function scheduleBlockForLesson(lesson) {
@@ -1813,8 +1986,9 @@
       <div class="v19-modal" role="dialog" aria-modal="true" aria-labelledby="v19-bump-title">
         <button class="v19-modal-close" aria-label="Close">${ICONS.close}</button>
         <span class="v19-eyebrow">BUMP PREVIEW</span>
-        <h2 id="v19-bump-title">Shift this lesson sequence?</h2>
+        <h2 id="v19-bump-title">Move this lesson forward?</h2>
         <p>${lesson ? `${plan.changes.length} lesson${plan.changes.length === 1 ? '' : 's'} will move into the next available session slot.` : 'The selected lesson could not be matched to a planning record.'}</p>
+        ${lesson ? `<p class="v19-modal-note"><strong>The Schedule Block stays on ${escapeHTML(formatDate(lesson.date, { weekday: 'long', month: 'short', day: 'numeric' }))}.</strong> Only the lesson plan moves; the original block returns to Needs plan.</p>` : ''}
         ${preview.length ? `<div class="v19-bump-preview">${preview.map((item) => `<div><strong>${escapeHTML(item.title)}</strong><span>${escapeHTML(item.from)} → ${escapeHTML(item.to)}</span></div>`).join('')}${plan.changes.length > preview.length ? `<small>+ ${plan.changes.length - preview.length} additional item(s)</small>` : ''}</div>` : `<div class="v19-bump-preview"><p>${escapeHTML(cardText || 'Selected planning item')}</p></div>`}
         ${plan.skippedDates.length ? `<p class="v19-modal-note"><strong>Skipped:</strong> ${escapeHTML(plan.skippedDates.slice(0, 6).join(', '))}${plan.skippedDates.length > 6 ? '…' : ''}</p>` : ''}
         ${plan.conflicts.length ? `<p class="v19-modal-warning"><strong>${plan.conflicts.length} possible conflict${plan.conflicts.length === 1 ? '' : 's'}:</strong> ${escapeHTML(plan.conflicts.slice(0, 3).map((item) => `${item.date} ${item.title}`).join('; '))}</p>` : ''}
@@ -1836,7 +2010,11 @@
       window.setTimeout(() => {
         maintainEnhancements();
         window.scrollTo(currentScroll.x, currentScroll.y);
-      }, 120);
+      }, 40);
+      window.setTimeout(() => {
+        maintainEnhancements();
+        window.scrollTo(currentScroll.x, currentScroll.y);
+      }, 220);
     });
   }
 
@@ -1933,11 +2111,14 @@
     installViewInWeekFix();
     installNativeFlowSaveBridge();
     installBumpPreview();
+    installPlanActionBridge();
     installKeyboardHistory();
     installNavClickSync();
     window.addEventListener('popstate', navigateFromHash);
     window.addEventListener('hashchange', navigateFromHash);
     window.addEventListener('classroom:v19-history', updateHistoryToolbar);
+    window.addEventListener('classroom:v19-data-change', () => window.setTimeout(maintainEnhancements, 0));
+    window.addEventListener('classroom:v19-restored', () => window.setTimeout(maintainEnhancements, 0));
 
     const observer = new MutationObserver(() => maintainEnhancements());
     observer.observe(document.documentElement, { childList: true, subtree: true });
@@ -1948,7 +2129,7 @@
       maintainEnhancements();
       navigateFromHash();
       showPendingToast();
-      document.documentElement.dataset.classroomVersion = '19.2A.1';
+      document.documentElement.dataset.classroomVersion = '19.2A.2';
       console.info(`Classroom v${VERSION} workflow and navigation enhancements loaded.`);
     }, 60);
   }
@@ -1960,7 +2141,10 @@
     normalizeFlowBlocks,
     standardKind,
     routeConnection,
-    decorateWeekCards
+    decorateWeekCards,
+    lessonForBumpCard,
+    reconcileWeekCardActions,
+    weekActionDiagnostics
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
