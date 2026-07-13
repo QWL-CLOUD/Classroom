@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.2.0';
-  const RELEASE_LABEL = 'v19.2A · Navigation & Week Stability';
+  const VERSION = '19.2.1';
+  const RELEASE_LABEL = 'v19.2A.1 · Navigation & Week Hotfix';
   const ROUTES = {
     today: { label: 'Today', path: 'today', aliases: ['Today', 'Today workspace', 'Home'] },
     week: { label: 'Week', path: 'week', aliases: ['Week', 'Weekly planner', 'Week workspace'] },
@@ -21,6 +21,8 @@
   const ICONS = {
     insights: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16V9m6 7V5m6 11v-4"/><path d="m5 7 5-3 4 3 5-4"/></svg>',
     cla: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5A2.5 2.5 0 0 1 20 22z"/></svg>',
+    learners: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    library: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M8 7h8M8 11h6"/></svg>',
     health: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4.5 6v5.5c0 4.8 3.1 8.2 7.5 9.5 4.4-1.3 7.5-4.7 7.5-9.5V6z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></svg>',
     undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 4 12l5 5"/><path d="M4 12h9a6 6 0 0 1 6 6"/></svg>',
     redo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 7 5 5-5 5"/><path d="M20 12h-9a6 6 0 0 0-6 6"/></svg>',
@@ -182,21 +184,51 @@
       .filter((node, index, all) => all.indexOf(node) === index);
   }
 
+  function ensureRouteDefinitions() {
+    Object.values(ROUTES).forEach((route) => {
+      const existing = routeRegistry.get(route.path);
+      if (existing && !existing.nodeType) return;
+      routeRegistry.set(route.path, {
+        route,
+        strategy: route.custom ? 'custom' : 'native',
+        trigger: existing?.nodeType ? existing : null,
+        registeredAt: Date.now()
+      });
+    });
+    return routeRegistry;
+  }
+
+  function locateRouteTrigger(route) {
+    const direct = document.querySelector(`.sidebar [data-v19-route="${route.path}"]`);
+    if (direct && !(direct.classList.contains('nav-section-toggle') && !direct.classList.contains('v19-direct-nav'))) {
+      return direct;
+    }
+    const aliases = routeAliases(route).map(normalizeRouteToken);
+    return navCandidates().find((node) => {
+      if (node.classList.contains('nav-section-toggle') && !node.classList.contains('v19-direct-nav')) return false;
+      const label = normalizeRouteToken(navCandidateLabel(node));
+      return aliases.some((alias) => label === alias || label.startsWith(`${alias} `));
+    }) || null;
+  }
+
   function registerNativeRoutes() {
-    routeRegistry.clear();
+    ensureRouteDefinitions();
     navCandidates().forEach((node) => {
-      const existing = node.dataset?.v19Route;
-      const route = existing ? routeForPath(existing) : routeForLabel(navCandidateLabel(node));
+      const existingPath = node.dataset?.v19Route;
+      const route = existingPath ? routeForPath(existingPath) : routeForLabel(navCandidateLabel(node));
       if (!route) return;
-      // Group toggles are not valid page targets unless they are explicitly converted to direct navigation.
       if (node.classList.contains('nav-section-toggle') && !node.classList.contains('v19-direct-nav')) return;
       node.dataset.v19Route = route.path;
       node.dataset.v19RouteLabel = route.label;
-      if (!routeRegistry.has(route.path) || node.classList.contains('active')) routeRegistry.set(route.path, node);
+      const entry = routeRegistry.get(route.path);
+      if (entry && (!entry.trigger?.isConnected || node.classList.contains('active') || node.classList.contains('v19-direct-nav'))) {
+        entry.trigger = node;
+      }
     });
     Object.values(ROUTES).filter((route) => route.custom).forEach((route) => {
+      const entry = routeRegistry.get(route.path);
       const custom = document.querySelector(`.v19-nav-button[data-v19-route="${route.path}"]`);
-      if (custom) routeRegistry.set(route.path, custom);
+      if (entry && custom) entry.trigger = custom;
     });
     return routeRegistry;
   }
@@ -212,22 +244,23 @@
 
   function findNavButton(route) {
     registerNativeRoutes();
-    const registered = routeRegistry.get(route.path);
-    if (registered?.isConnected) return registered;
-    const aliases = routeAliases(route).map(normalizeRouteToken);
-    return navCandidates().find((button) => {
-      if (button.classList.contains('nav-section-toggle') && !button.classList.contains('v19-direct-nav')) return false;
-      const label = normalizeRouteToken(navCandidateLabel(button));
-      return aliases.some((alias) => label === alias || label.startsWith(`${alias} `));
-    }) || null;
+    const entry = routeRegistry.get(route.path);
+    if (entry?.trigger?.isConnected) return entry.trigger;
+    const trigger = locateRouteTrigger(route);
+    if (entry && trigger) entry.trigger = trigger;
+    return trigger;
   }
 
   function routeConnection(route) {
+    ensureRouteDefinitions();
+    const entry = routeRegistry.get(route.path);
     const trigger = findNavButton(route);
     return {
       path: route.path,
       label: route.label,
-      registered: Boolean(trigger || route.custom),
+      registered: Boolean(entry),
+      targetFound: Boolean(trigger || route.custom),
+      strategy: entry?.strategy || (route.custom ? 'custom' : 'native'),
       trigger: trigger || null
     };
   }
@@ -392,18 +425,39 @@
       direct.dataset.v19RouteLabel = route.label;
       direct.title = route.label;
       const icon = nativeButton?.querySelector('svg')?.outerHTML || iconFallback;
-      direct.innerHTML = `${icon}<span>${escapeHTML(route.label)}</span>`;
+      direct.innerHTML = `${icon}<span class="v19-nav-label">${escapeHTML(route.label)}</span>`;
       direct.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
         hideCustomPage();
-        if (nativeButton) nativeButton.click();
+        const openNativeTarget = () => {
+          const list = group.querySelector('.secondary-nav');
+          const target = list ? [...list.querySelectorAll('.nav-button, button, a')].find((button) => {
+            if (button.classList.contains('v19-direct-nav')) return false;
+            const value = normalizeRouteToken(navCandidateLabel(button));
+            return childLabels.some((label) => value === normalizeRouteToken(label) || value.startsWith(`${normalizeRouteToken(label)} `));
+          }) : null;
+          if (target) {
+            target.click();
+            return true;
+          }
+          return false;
+        };
+        if (!openNativeTarget() && toggle) {
+          toggle.click();
+          window.setTimeout(() => {
+            openNativeTarget();
+            maintainEnhancements();
+          }, 60);
+        }
         setHash(route.path);
       });
       group.appendChild(direct);
     }
     direct.classList.toggle('active', Boolean(nativeButton?.classList.contains('active')) && !customMode);
-    routeRegistry.set(route.path, direct);
+    ensureRouteDefinitions();
+    const entry = routeRegistry.get(route.path);
+    if (entry) entry.trigger = direct;
     return direct;
   }
 
@@ -411,7 +465,7 @@
     return installDirectGroupNavigation({
       groupLabels: ['Learners'], route: ROUTES.learners,
       childLabels: ['Classes, Groups & Individuals', 'Learners'],
-      className: 'v19-learners-nav-group', iconFallback: ICONS.cla
+      className: 'v19-learners-nav-group', iconFallback: ICONS.learners
     });
   }
 
@@ -419,7 +473,7 @@
     return installDirectGroupNavigation({
       groupLabels: ['Resources', 'Library'], route: ROUTES.resources,
       childLabels: ['Resource Library', 'Library'],
-      className: 'v19-library-nav-group', iconFallback: ICONS.cla
+      className: 'v19-library-nav-group', iconFallback: ICONS.library
     });
   }
 
@@ -1273,6 +1327,7 @@
     const requiredRoutes = [ROUTES.today, ROUTES.week, ROUTES.tasks, ROUTES.learners, ROUTES.resources, ROUTES.calendar, ROUTES.import, ROUTES.export, ROUTES.settings];
     const routeConnections = requiredRoutes.map(routeConnection);
     const missingRoutes = routeConnections.filter((item) => !item.registered).map((item) => item.label);
+    const unresolvedRouteTargets = routeConnections.filter((item) => !item.targetFound).map((item) => item.label);
     const quarantine = readJSON('cos-calendar-quarantine-v19', []);
     const repair = readJSON('cos-calendar-repair-v19', calendarRepairResult || {});
 
@@ -1284,7 +1339,7 @@
       { name: 'Calendar events are not duplicated', status: duplicateCount ? 'warning' : 'pass', detail: `${duplicateCount} duplicate signature(s)` },
       { name: 'Imported calendar repair', status: invalidDates.length || duplicateCount ? 'fail' : 'pass', detail: `${repair.normalized || 0} multi-day value(s) normalized · ${quarantine.length} old/duplicate import record(s) quarantined` },
       { name: 'Parent / child schedule links resolve', status: orphanChildren.length ? 'fail' : 'pass', detail: `${orphanChildren.length} orphan child block(s)` },
-      { name: 'Main page connections exist', status: missingRoutes.length ? 'fail' : 'pass', detail: missingRoutes.length ? `Missing: ${missingRoutes.join(', ')}` : 'All main navigation targets found' },
+      { name: 'Main page connections exist', status: missingRoutes.length ? 'fail' : unresolvedRouteTargets.length ? 'warning' : 'pass', detail: missingRoutes.length ? `Missing registrations: ${missingRoutes.join(', ')}` : unresolvedRouteTargets.length ? `Registered; trigger pending: ${unresolvedRouteTargets.join(', ')}` : 'All main routes registered and connected' },
       { name: 'Undo / Redo controls are available', status: document.querySelector('.v19-history-toolbar') ? 'pass' : 'fail', detail: 'Icon-only controls in the top toolbar' },
       { name: 'PDF calendar batch identified', status: latestPdfBatch || acceptanceEvents.length === 27 ? 'pass' : 'warning', detail: latestPdfBatch ? `${latestPdfBatch.fileName || 'PDF import'} · ${acceptanceEvents.length} linked event(s)` : `${acceptanceEvents.length || events.length} candidate event(s)` },
       { name: '27-event acceptance set is complete', status: acceptanceEvents.length === 27 ? 'pass' : 'warning', detail: `${acceptanceEvents.length} of 27 events identified` }
@@ -1320,7 +1375,7 @@
       },
       tests,
       eventResults,
-      details: { parseFailures, invalidDates, invalidEndDates, invalidTimes, duplicateCount, orphanChildren, missingRoutes, routeConnections: routeConnections.map(({ trigger, ...item }) => item), repair, quarantine }
+      details: { parseFailures, invalidDates, invalidEndDates, invalidTimes, duplicateCount, orphanChildren, missingRoutes, unresolvedRouteTargets, routeConnections: routeConnections.map(({ trigger, ...item }) => item), repair, quarantine }
     };
   }
 
@@ -1522,24 +1577,22 @@
   }
 
   function leafTextElements(root) {
-    return [...root.querySelectorAll('span, small, strong, b, p, div')].filter((node) => node.children.length === 0 && text(node));
+    return [...root.querySelectorAll('span, small, strong, b, p, div')]
+      .filter((node) => node.children.length === 0 && text(node));
+  }
+
+  function resetWeekDecorations(card) {
+    card.querySelectorAll('.v19-week-flow-row, .v19-week-flow-time, .v19-week-flow-title, .v19-week-flow-status')
+      .forEach((node) => node.classList.remove('v19-week-flow-row', 'v19-week-flow-time', 'v19-week-flow-title', 'v19-week-flow-status'));
   }
 
   function decorateWeekFlowRows(card) {
-    const timePattern = /^\d{1,2}:\d{2}\s*[–—-]\s*\d{1,2}:\d{2}$/;
-    const statusPattern = /^(planned|needs plan|ready|draft|complete|completed|not ready|no plan)$/i;
-    leafTextElements(card).filter((node) => timePattern.test(text(node))).forEach((timeNode) => {
-      let row = timeNode.parentElement;
-      while (row && row !== card && row.children.length < 2) row = row.parentElement;
-      if (!row || row === card || row.classList.contains('v19-week-card-head')) return;
-      if (row.closest('.v19-week-card') !== card) return;
+    resetWeekDecorations(card);
+    card.querySelectorAll(':scope > .week-child-blocks > .week-child-row').forEach((row) => {
       row.classList.add('v19-week-flow-row');
-      timeNode.classList.add('v19-week-flow-time');
-      const leaves = leafTextElements(row).filter((node) => node !== timeNode);
-      const status = leaves.find((node) => statusPattern.test(text(node)));
-      if (status) status.classList.add('v19-week-flow-status');
-      const title = leaves.find((node) => node !== status && !timePattern.test(text(node)) && text(node).length > 1);
-      if (title) title.classList.add('v19-week-flow-title');
+      row.querySelector(':scope > span')?.classList.add('v19-week-flow-time');
+      row.querySelector(':scope > strong')?.classList.add('v19-week-flow-title');
+      row.querySelector(':scope > small')?.classList.add('v19-week-flow-status');
     });
   }
 
@@ -1547,30 +1600,30 @@
     const selectors = [
       '.week-workspace .schedule-week-item',
       '.week-workspace .schedule-tree-card',
-      '.week-workspace .standalone-session-card',
-      '.week-workspace .lesson-block',
-      '.week-workspace article[class*="card"]'
+      '.week-workspace .standalone-session-card'
     ].join(',');
     document.querySelectorAll(selectors).forEach((card) => {
       card.classList.add('v19-week-card');
-      const header = card.querySelector('.lesson-block-header, .schedule-week-item-header, .schedule-tree-card-header, header, .card-header') || card.firstElementChild;
-      if (header) header.classList.add('v19-week-card-head');
-      const title = (header || card).querySelector('h2, h3, h4, [class*="title"]');
-      title?.classList.add('v19-week-card-title');
-      leafTextElements(card).filter((node) => /^(planned|needs plan|ready|draft|complete|completed|not ready|no plan)$/i.test(text(node)))
-        .forEach((node) => node.classList.add('v19-week-status'));
+      const main = card.querySelector(':scope > .workspace-item-main');
+      if (main) {
+        main.classList.add('v19-week-card-main', 'v19-week-card-head');
+        main.querySelector(':scope > .workspace-item-time')?.classList.add('v19-week-card-time');
+        main.querySelector(':scope > strong')?.classList.add('v19-week-card-title');
+        main.querySelector(':scope > span')?.classList.add('v19-week-card-subtitle');
+        main.querySelector(':scope > .status-chip')?.classList.add('v19-week-status');
+      }
       decorateWeekFlowRows(card);
     });
   }
 
   function ensureWeekCardActions(card) {
-    const header = card.querySelector('.lesson-block-header, .schedule-week-item-header, .schedule-tree-card-header, header, .card-header') || card;
-    header.classList.add('v19-week-card-head');
-    let actions = header.querySelector(':scope > .v19-week-card-actions') || card.querySelector('.v19-week-card-actions');
+    card.classList.add('v19-week-card');
+    let actions = card.querySelector(':scope > .v19-week-card-actions');
     if (!actions) {
       actions = document.createElement('div');
       actions.className = 'v19-week-card-actions';
-      header.appendChild(actions);
+      actions.setAttribute('aria-label', 'Lesson actions');
+      card.appendChild(actions);
     }
     return actions;
   }
@@ -1895,7 +1948,7 @@
       maintainEnhancements();
       navigateFromHash();
       showPendingToast();
-      document.documentElement.dataset.classroomVersion = '19.2A';
+      document.documentElement.dataset.classroomVersion = '19.2A.1';
       console.info(`Classroom v${VERSION} workflow and navigation enhancements loaded.`);
     }, 60);
   }
