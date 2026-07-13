@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.3.0';
-  const RELEASE_LABEL = 'v19.3 · Core Stability';
+  const VERSION = '19.4.0';
+  const RELEASE_LABEL = 'v19.4 · Lesson & Learner Workflow';
   const ROUTES = {
     today: { label: 'Today', path: 'today', aliases: ['Today', 'Today workspace', 'Home'] },
     week: { label: 'Week', path: 'week', aliases: ['Week', 'Weekly planner', 'Week workspace'] },
@@ -1103,7 +1103,9 @@
       duration: String(block.duration || block.minutes || ''),
       teacherAction: String(block.teacherAction || ''),
       studentAction: String(block.studentAction || ''),
-      materials: String(block.materials || ''),
+      resources: String(block.resources || block.materials || ''),
+      materials: String(block.materials || block.resources || ''),
+      standards: String(block.standards || block.standard || ''),
       notes: String(block.notes || ''),
       sourceActivityId: String(block.sourceActivityId || ''),
       parentId: String(block.parentId || ''),
@@ -1123,7 +1125,6 @@
     });
     return normalized.sort((a, b) => a.order - b.order).map((block, index) => ({ ...block, order: index }));
   }
-
   function flowDescendantIds(blocks, parentId) {
     const result = new Set();
     const visit = (id) => blocks.filter((block) => String(block.parentId || '') === String(id)).forEach((child) => {
@@ -1145,12 +1146,12 @@
       return {
         id: makeId('flow'), title: activityTitle(activity), purpose: activity?.purpose || '',
         duration: activity?.duration || activity?.minutes || '', teacherAction: activity?.teacherAction || '',
-        studentAction: activity?.studentAction || '', materials: activity?.materials || '', notes: '',
+        studentAction: activity?.studentAction || '', resources: activity?.resources || activity?.materials || '', materials: activity?.materials || activity?.resources || '', standards: activity?.standards || activity?.standard || '', notes: '',
         sourceActivityId: id || '', parentId: '', order: index
       };
     });
     if (!migrated.length && String(lesson?.activityNotes || '').trim()) {
-      migrated.push({ id: makeId('flow'), title: 'Lesson sequence', purpose: '', duration: '', teacherAction: '', studentAction: '', materials: '', notes: String(lesson.activityNotes), sourceActivityId: '', parentId: '', order: 0 });
+      migrated.push({ id: makeId('flow'), title: 'Lesson sequence', purpose: '', duration: '', teacherAction: '', studentAction: '', resources: '', materials: '', standards: '', notes: String(lesson.activityNotes), sourceActivityId: '', parentId: '', order: 0 });
     }
     return normalizeFlowBlocks(migrated);
   }
@@ -1213,7 +1214,8 @@
           <label class="duration"><span>Minutes</span><input data-flow-field="duration" inputmode="numeric" value="${escapeHTML(block.duration)}"></label>
           <label><span>Teacher action</span><textarea data-flow-field="teacherAction">${escapeHTML(block.teacherAction)}</textarea></label>
           <label><span>Student action</span><textarea data-flow-field="studentAction">${escapeHTML(block.studentAction)}</textarea></label>
-          <label><span>Materials</span><input data-flow-field="materials" value="${escapeHTML(block.materials)}"></label>
+          <label><span>Resources</span><input data-flow-field="resources" value="${escapeHTML(block.resources || block.materials)}"></label>
+          <label><span>Standards</span><input data-flow-field="standards" value="${escapeHTML(block.standards)}"></label>
           <label><span>Parent block</span><select data-flow-field="parentId"><option value="">Top level</option>${parentOptions}</select></label>
           <label class="wide"><span>Notes</span><textarea data-flow-field="notes">${escapeHTML(block.notes)}</textarea></label>
         </div>
@@ -1233,14 +1235,14 @@
       <div class="v19-flow-tree">${state.blocks.length ? renderFlowTree(state.blocks) : '<div class="v19-empty compact"><p>No flow blocks yet. Add a block or start from an Activity template.</p></div>'}</div>`;
 
     shell.querySelector('[data-flow-add]')?.addEventListener('click', () => {
-      state.blocks.push({ id: makeId('flow'), title: 'New flow block', purpose: '', duration: '', teacherAction: '', studentAction: '', materials: '', notes: '', sourceActivityId: '', parentId: '', order: state.blocks.length });
+      state.blocks.push({ id: makeId('flow'), title: 'New flow block', purpose: '', duration: '', teacherAction: '', studentAction: '', resources: '', materials: '', standards: '', notes: '', sourceActivityId: '', parentId: '', order: state.blocks.length });
       saveFlowDraft(editor, state); rerenderFlowEditor(editor);
     });
     shell.querySelector('[data-flow-add-template]')?.addEventListener('click', () => {
       const id = shell.querySelector('[data-flow-template]')?.value;
       const activity = activities.find((item) => String(item.id) === String(id));
       if (!activity) return;
-      state.blocks.push({ id: makeId('flow'), title: activityTitle(activity), purpose: activity.purpose || '', duration: activity.duration || activity.minutes || '', teacherAction: activity.teacherAction || '', studentAction: activity.studentAction || '', materials: activity.materials || '', notes: '', sourceActivityId: activity.id || '', parentId: '', order: state.blocks.length });
+      state.blocks.push({ id: makeId('flow'), title: activityTitle(activity), purpose: activity.purpose || '', duration: activity.duration || activity.minutes || '', teacherAction: activity.teacherAction || '', studentAction: activity.studentAction || '', resources: activity.resources || activity.materials || '', materials: activity.materials || activity.resources || '', standards: activity.standards || activity.standard || '', notes: '', sourceActivityId: activity.id || '', parentId: '', order: state.blocks.length });
       saveFlowDraft(editor, state); rerenderFlowEditor(editor);
     });
     shell.querySelector('[data-flow-save]')?.addEventListener('click', () => commitFlow(editor, state));
@@ -1250,6 +1252,7 @@
         const block = state.blocks.find((item) => item.id === card?.dataset.flowId);
         if (!block) return;
         block[control.dataset.flowField] = control.value;
+        if (control.dataset.flowField === 'resources') block.materials = control.value;
         if (control.dataset.flowField === 'parentId') {
           state.blocks = normalizeFlowBlocks(state.blocks);
           saveFlowDraft(editor, state); rerenderFlowEditor(editor); return;
@@ -1262,7 +1265,7 @@
       const block = state.blocks.find((item) => item.id === id);
       if (!block) return;
       const action = button.dataset.flowAction;
-      if (action === 'child') state.blocks.push({ id: makeId('flow'), title: 'New child block', purpose: '', duration: '', teacherAction: '', studentAction: '', materials: '', notes: '', sourceActivityId: '', parentId: block.id, order: state.blocks.length });
+      if (action === 'child') state.blocks.push({ id: makeId('flow'), title: 'New child block', purpose: '', duration: '', teacherAction: '', studentAction: '', resources: '', materials: '', standards: '', notes: '', sourceActivityId: '', parentId: block.id, order: state.blocks.length });
       if (action === 'duplicate') state.blocks.push({ ...block, id: makeId('flow'), title: `${block.title} copy`, order: state.blocks.length });
       if (action === 'delete') {
         state.blocks = state.blocks.filter((item) => item.id !== block.id).map((item) => item.parentId === block.id ? { ...item, parentId: block.parentId || '' } : item);
@@ -1488,7 +1491,8 @@
     const keys = [
       'cos-lessons', 'cos-calendar-events', 'cos-schedule-blocks', 'cos-date-overrides',
       'cos-students', 'cos-classes', 'cos-groups', 'cos-standards', 'cos-toolkit',
-      'cos-materials', 'cos-import-batches', 'cos-tasks'
+      'cos-materials', 'cos-import-batches', 'cos-tasks',
+      'cos-planning-templates-v19', 'cos-learner-notices-v19'
     ];
     const parseFailures = [];
     keys.forEach((key) => {
@@ -1545,6 +1549,20 @@
     const emptyWeekCardDates = snapshotCards.filter((card) => !localDate(card.cardDate)).length;
     const distinctWeekDates = new Set(snapshotCards.map((card) => card.cardDate).filter(localDate)).size;
     const implicitSeriesRisk = lessons.filter((lesson) => lesson.scheduleBlockId && !lesson.seriesId && !lesson.planSeriesId).length;
+    const templates = readJSON('cos-planning-templates-v19', []);
+    const notices = readJSON('cos-learner-notices-v19', []);
+    const scheduleIdSet = new Set(schedule.map((block) => String(block.id || '')));
+    const unresolvedLessonBlockLinks = lessons.filter((lesson) => lesson.scheduleBlockId && !scheduleIdSet.has(String(lesson.scheduleBlockId))).length;
+    const weekCardsMissingStableBlock = snapshotCards.filter((card) => !String(card.scheduleBlockId || '').trim()).length;
+    const invalidTemplateParents = templates.filter((template) => template.parentBlockId && !scheduleIdSet.has(String(template.parentBlockId))).length;
+    const invalidTemplateFlows = templates.filter((template) => {
+      const blocks = normalizeFlowBlocks(template.flowBlocks || []);
+      return blocks.length !== (Array.isArray(template.flowBlocks) ? template.flowBlocks.length : 0);
+    }).length;
+    const invalidNoticeDates = notices.filter((notice) => (notice.startDate && !localDate(notice.startDate)) || (notice.endDate && (!localDate(notice.endDate) || (notice.startDate && notice.endDate < notice.startDate)))).length;
+    const activeLunarNames = [events, lessons, readJSON('cos-materials', []), readJSON('cos-toolkit', []), templates, notices]
+      .flat().filter((record) => /lunar new year/i.test(JSON.stringify(record || {}))).length;
+
     const parsedRoute = parseHash();
     const routeWeekDate = currentWeekSnapshot?.routeWeekDate || savedWeekSnapshot?.routeWeekDate || (parsedRoute.path === 'week' ? parsedRoute.params.get('date') || '' : '');
     const visibleWeekDate = currentWeekSnapshot?.visibleWeekDate || savedWeekSnapshot?.visibleWeekDate || visibleWeekAnchorDate();
@@ -1584,6 +1602,10 @@
       { name: 'Week focus date matches the visible week', status: !weekSnapshotAvailable ? 'warning' : focusMatchesVisibleWeek ? 'pass' : 'fail', detail: weekSnapshotAvailable ? `Focus date: ${snapshotFocusDate || 'none'} · Visible Monday: ${visibleWeekDate || 'none'}` : 'Run the live page test to capture the focus date' },
       { name: 'Week cards have canonical dates', status: !weekSnapshotAvailable ? 'warning' : emptyWeekCardDates ? 'fail' : distinctWeekDates < 5 ? 'warning' : 'pass', detail: weekSnapshotAvailable ? `${distinctWeekDates} distinct day date(s) · ${emptyWeekCardDates} card(s) without a date` : 'Run the live page test to capture Week dates' },
       { name: 'Bump uses safe single-lesson scope', status: 'pass', detail: `Implicit schedule-block series shifting disabled · ${implicitSeriesRisk} record(s) protected from accidental grouping` },
+      { name: 'Week cards use stable Schedule Block IDs', status: !weekSnapshotAvailable ? 'warning' : weekCardsMissingStableBlock ? 'fail' : unresolvedLessonBlockLinks ? 'fail' : 'pass', detail: !weekSnapshotAvailable ? 'Run the live page test to capture Schedule Block links' : `${weekCardsMissingStableBlock} mounted card(s) without a stable Block ID · ${unresolvedLessonBlockLinks} lesson link(s) unresolved` },
+      { name: 'Planning templates are structurally valid', status: invalidTemplateParents || invalidTemplateFlows ? 'fail' : 'pass', detail: `${templates.length} template(s) · ${invalidTemplateParents} invalid Parent Block link(s) · ${invalidTemplateFlows} invalid flow structure(s)` },
+      { name: 'Learner notices use valid date ranges', status: invalidNoticeDates ? 'fail' : 'pass', detail: `${notices.length} notice(s) · ${invalidNoticeDates} invalid date range(s)` },
+      { name: 'Chinese New Year naming is consistent', status: activeLunarNames ? 'warning' : 'pass', detail: `${activeLunarNames} active record(s) still use Lunar New Year` },
       { name: 'Lesson records have unique IDs', status: duplicateLessonIds ? 'fail' : 'pass', detail: `${duplicateLessonIds} duplicate lesson ID(s)` },
       { name: 'PDF calendar batch identified', status: latestPdfBatch || acceptanceEvents.length === 27 ? 'pass' : 'warning', detail: latestPdfBatch ? `${latestPdfBatch.fileName || 'PDF import'} · ${acceptanceEvents.length} linked event(s)` : `${acceptanceEvents.length || events.length} candidate event(s)` },
       { name: '27-event acceptance set is complete', status: acceptanceEvents.length === 27 ? 'pass' : 'warning', detail: `${acceptanceEvents.length} of 27 events identified` }
@@ -1615,12 +1637,14 @@
         scheduleBlocks: schedule.length,
         pdfBatches: pdfBatches.length,
         acceptanceEvents: acceptanceEvents.length,
-        quarantinedEvents: quarantine.length
+        quarantinedEvents: quarantine.length,
+        planningTemplates: templates.length,
+        learnerNotices: notices.length
       },
       tests,
       eventResults,
       liveAcceptanceResults,
-      details: { parseFailures, invalidDates, invalidEndDates, invalidTimes, duplicateCount, orphanChildren, missingRoutes, unresolvedRouteTargets, routeConnections: routeConnections.map(({ trigger, ...item }) => item), weekActions, weekSnapshot: savedWeekSnapshot, lessonRecords, routeWeekDate, visibleWeekDate, sameVisibleWeek, focusMatchesVisibleWeek, emptyWeekCardDates, distinctWeekDates, implicitSeriesRisk, duplicateLessonIds, repair, quarantine }
+      details: { parseFailures, invalidDates, invalidEndDates, invalidTimes, duplicateCount, orphanChildren, missingRoutes, unresolvedRouteTargets, routeConnections: routeConnections.map(({ trigger, ...item }) => item), weekActions, weekSnapshot: savedWeekSnapshot, lessonRecords, routeWeekDate, visibleWeekDate, sameVisibleWeek, focusMatchesVisibleWeek, emptyWeekCardDates, distinctWeekDates, implicitSeriesRisk, weekCardsMissingStableBlock, unresolvedLessonBlockLinks, invalidTemplateParents, invalidTemplateFlows, invalidNoticeDates, activeLunarNames, planningTemplates: templates, learnerNotices: notices, duplicateLessonIds, repair, quarantine }
     };
   }
 
@@ -2665,8 +2689,8 @@
         routeBootstrapPending = false;
         syncHashFromActiveNav();
       }, 360);
-      document.documentElement.dataset.classroomVersion = '19.3';
-      console.info(`Classroom v${VERSION} workflow and navigation enhancements loaded.`);
+      document.documentElement.dataset.classroomVersion = '19.4';
+      console.info(`Classroom v${VERSION} lesson and learner workflow loaded.`);
     }, 60);
   }
 
@@ -2691,7 +2715,20 @@
     namesRepresentSameBlock,
     archiveLessonRecord,
     restoreLessonRecord,
-    deleteLessonRecord
+    deleteLessonRecord,
+    readJSON,
+    writeJSON,
+    makeId,
+    currentLessons,
+    scheduleBlockForLesson,
+    normalizeFlowBlocks,
+    resolveEditorLesson,
+    saveFlowDraft,
+    commitFlow,
+    rerenderFlowEditor,
+    reconcileWeekCardActions,
+    weekCards,
+    bumpCardDate
   };
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
