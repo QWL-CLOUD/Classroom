@@ -1,5 +1,5 @@
 {
-  "name": "Classroom — Workflow & Navigation",
+  "name": "Classroom \u2014 Workflow Fixes",
   "short_name": "Classroom",
   "description": "Private-first connected teaching planning workspace",
   "start_url": "./",
@@ -7,6 +7,6 @@
   "display": "standalone",
   "background_color": "#F5F3EE",
   "theme_color": "#334B4F",
-  "version": "19.0.0",
+  "version": "19.1.0",
   "icons": []
 }
