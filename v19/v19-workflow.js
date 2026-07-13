@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.4';
+  const VERSION = '19.4.5';
   const KEYS = {
     templates: 'cos-planning-templates-v19',
     notices: 'cos-learner-notices-v19',
@@ -31,6 +31,11 @@
   let supportFilter = 'active';
   let draggedFlowId = '';
   let draggedEditor = null;
+  const WEEK_VIEW_OPTIONS = ['Teaching', 'All schedule', 'Calendar', 'Personal agenda', 'Everything'];
+  const WEEK_VIEW_STORAGE_KEY = 'classroom-v19-week-view';
+  const WEEKENDS_STORAGE_KEY = 'classroom-v19-show-weekends';
+  let cachedWeekNativeSelect = null;
+  let cachedWeekNativeWeekend = null;
 
   function diagnostics() { return window.ClassroomV19Diagnostics || {}; }
   function read(key, fallback = []) {
@@ -87,10 +92,24 @@
     const match = /^(\d{1,2}):(\d{2})/.exec(String(value || ''));
     return match ? Number(match[1])*60 + Number(match[2]) : NaN;
   }
+  function parseMinuteRange(value) {
+    const raw = String(value || '').trim();
+    let match = raw.match(/(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})/);
+    if (match) return { start:Number(match[1])*60+Number(match[2]), end:Number(match[3])*60+Number(match[4]) };
+    match = raw.match(/(?:^|\s)(\d{2,4})\s*[–—-]\s*(\d{2,4})(?:\s|$)/);
+    if (!match) return null;
+    const start = Number(match[1]);
+    const end = Number(match[2]);
+    return Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end >= start && end <= 1440 ? { start, end } : null;
+  }
   function cardTimeRange(card) {
-    const value = text(card.querySelector('.v19-week-card-time, .workspace-item-time'));
-    const match = value.match(/(\d{1,2}):(\d{2})\s*[–—-]\s*(\d{1,2}):(\d{2})/);
-    return match ? { start:Number(match[1])*60+Number(match[2]), end:Number(match[3])*60+Number(match[4]) } : null;
+    return parseMinuteRange(text(card.querySelector('.v19-week-card-time, .workspace-item-time')));
+  }
+  function blockTimeRange(block) {
+    const start = toMinutes(block?.start ?? block?.startTime);
+    const end = toMinutes(block?.end ?? block?.endTime);
+    if (Number.isFinite(start) && Number.isFinite(end)) return { start, end };
+    return parseMinuteRange(block?.time ?? block?.timeRange ?? block?.range ?? '');
   }
   function weekdayForDate(value) {
     if (!validDate(value)) return '';
@@ -148,10 +167,9 @@
     const weekday = weekdayForDate(date);
     if (weekday && !blockAppliesToWeekday(block, weekday)) return false;
     const range = cardTimeRange(card);
-    const start = toMinutes(block.start ?? block.startTime);
-    const end = toMinutes(block.end ?? block.endTime);
-    if (range && Number.isFinite(start) && Math.abs(range.start-start) > 1) return false;
-    if (range && Number.isFinite(end) && Math.abs(range.end-end) > 1) return false;
+    const blockRange = blockTimeRange(block);
+    if (range && blockRange && Math.abs(range.start-blockRange.start) > 1) return false;
+    if (range && blockRange && Math.abs(range.end-blockRange.end) > 1) return false;
     const names = [cardTitle(card), cardSubtitle(card)].filter(Boolean);
     return names.some((name) => sameBlockName(blockName(block), name));
   }
@@ -374,15 +392,45 @@
   function nativeWeekButton(week, pattern) {
     return [...week.querySelectorAll('button')].find((button) => !button.closest('[data-v1942-week-header]') && pattern.test(text(button))) || null;
   }
+  function nativeWeekToolbar(week) {
+    return [...week.querySelectorAll('.week-toolbar')].find((toolbar) => !toolbar.closest('[data-v1942-week-header]')) || null;
+  }
+  function looksLikeWeekViewSelect(select) {
+    const labels = [...(select?.options || [])].map((option) => text(option).toLowerCase());
+    return labels.includes('teaching') && labels.includes('everything');
+  }
   function nativeWeekSelect(week) {
-    return [...week.querySelectorAll('select')].find((select) => !select.closest('[data-v1942-week-header]')) || null;
+    if (cachedWeekNativeSelect?.isConnected && cachedWeekNativeSelect.closest('.week-workspace') === week) return cachedWeekNativeSelect;
+    const toolbar = nativeWeekToolbar(week);
+    const candidates = [
+      toolbar?.querySelector('select'),
+      ...week.querySelectorAll('select[data-v1945-native-week-view], select')
+    ].filter(Boolean);
+    const found = candidates.find((select) => !select.closest('[data-v1942-week-header]') && looksLikeWeekViewSelect(select)) || null;
+    if (found) {
+      found.dataset.v1945NativeWeekView = 'true';
+      cachedWeekNativeSelect = found;
+    }
+    return found;
   }
   function nativeWeekendCheckbox(week) {
-    return [...week.querySelectorAll('input[type="checkbox"]')].find((input) => {
+    if (cachedWeekNativeWeekend?.isConnected && cachedWeekNativeWeekend.closest('.week-workspace') === week) return cachedWeekNativeWeekend;
+    const toolbar = nativeWeekToolbar(week);
+    const candidates = [
+      toolbar?.querySelector('.weekend-toggle input[type="checkbox"]'),
+      toolbar?.querySelector('input[type="checkbox"]'),
+      ...week.querySelectorAll('input[type="checkbox"][data-v1945-native-weekends], input[type="checkbox"]')
+    ].filter(Boolean);
+    const found = candidates.find((input) => {
       if (input.closest('[data-v1942-week-header]')) return false;
       const label = input.closest('label');
-      return /show weekends|weekends/i.test(text(label || input.parentElement));
+      return /show weekends|weekends/i.test(text(label || input.parentElement)) || Boolean(input.closest('.weekend-toggle'));
     }) || null;
+    if (found) {
+      found.dataset.v1945NativeWeekends = 'true';
+      cachedWeekNativeWeekend = found;
+    }
+    return found;
   }
   function setReactControlValue(control, value) {
     if (!control) return false;
@@ -404,14 +452,19 @@
     if (!control) return false;
     const desired = Boolean(checked);
     if (control.checked === desired) return true;
-    const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'checked');
     try {
-      // Put the native control in the opposite state, then let a real click
-      // perform the final toggle. React's checkbox onChange listens to click.
-      if (descriptor?.set) descriptor.set.call(control, !desired);
-      else control.checked = !desired;
       control.click();
     } catch {
+      const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'checked');
+      try {
+        if (descriptor?.set) descriptor.set.call(control, desired);
+        else control.checked = desired;
+      } catch { control.checked = desired; }
+      control.dispatchEvent(new Event('input', { bubbles:true }));
+      control.dispatchEvent(new Event('change', { bubbles:true }));
+    }
+    if (control.checked !== desired) {
+      const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'checked');
       try {
         if (descriptor?.set) descriptor.set.call(control, desired);
         else control.checked = desired;
@@ -420,6 +473,40 @@
       control.dispatchEvent(new Event('change', { bubbles:true }));
     }
     return control.checked === desired;
+  }
+  function storedWeekView() {
+    try {
+      const value = localStorage.getItem(WEEK_VIEW_STORAGE_KEY) || '';
+      return WEEK_VIEW_OPTIONS.includes(value) ? value : '';
+    } catch { return ''; }
+  }
+  function storeWeekView(value) {
+    if (!WEEK_VIEW_OPTIONS.includes(value)) return;
+    try { localStorage.setItem(WEEK_VIEW_STORAGE_KEY, value); } catch {}
+  }
+  function storedWeekends() {
+    try {
+      const raw = localStorage.getItem(WEEKENDS_STORAGE_KEY);
+      return raw === null ? null : raw === 'true';
+    } catch { return null; }
+  }
+  function storeWeekends(value) {
+    try { localStorage.setItem(WEEKENDS_STORAGE_KEY, String(Boolean(value))); } catch {}
+  }
+  function applyWeekDisplayFallback(week, view, showWeekends) {
+    const normalizedView = WEEK_VIEW_OPTIONS.includes(view) ? view : 'Teaching';
+    week.dataset.v1945ViewMode = normalize(normalizedView).replace(/\s+/g, '-');
+    week.dataset.v1945ShowWeekends = String(Boolean(showWeekends));
+    week.querySelectorAll('.day-items > .workspace-item').forEach((item) => {
+      const scheduleItem = item.classList.contains('schedule-week-item');
+      const calendarItem = item.classList.contains('calendar-week-item');
+      const personalItem = !scheduleItem && !calendarItem;
+      const visible = normalizedView === 'Everything'
+        || ((normalizedView === 'Teaching' || normalizedView === 'All schedule') && scheduleItem)
+        || (normalizedView === 'Calendar' && calendarItem)
+        || (normalizedView === 'Personal agenda' && personalItem);
+      item.classList.toggle('v1945-view-hidden', !visible);
+    });
   }
   function weekDateRangeLabel(week) {
     const routeStart = diagnostics().visibleWeekAnchorDate?.() || diagnostics().visibleWeekRouteDate?.() || '';
@@ -441,8 +528,9 @@
     if (target) target.classList.add('v1942-native-week-control');
   }
   function installWeekHeader() {
-    const week = document.querySelector('.week-workspace');
-    if (!week) return;
+    const weeks = [...document.querySelectorAll('.week-workspace')];
+    if (!weeks.length) return;
+    const week = weeks.find((node) => node.offsetParent !== null) || weeks[weeks.length - 1];
     week.querySelectorAll('[data-v194-week-templates]').forEach((button) => button.remove());
 
     let panel = week.querySelector('[data-v1942-week-header]');
@@ -460,7 +548,7 @@
           </div>
         </div>
         <div class="v1942-week-tools-row">
-          <label class="v1942-week-filter"><span>View</span><select data-v1942-week-filter aria-label="Week view filter"></select></label>
+          <label class="v1942-week-filter"><span>View</span><select data-v1942-week-filter aria-label="Week view filter">${WEEK_VIEW_OPTIONS.map((item) => `<option value="${esc(item)}">${esc(item)}</option>`).join('')}</select></label>
           <div class="v1942-week-tools">
             <label class="v1942-weekend-toggle"><input type="checkbox" data-v1942-weekends><span class="track" aria-hidden="true"></span><span>Weekends</span></label>
             <button type="button" class="v1942-template-launcher" data-v1942-open-templates>Lesson templates</button>
@@ -473,27 +561,24 @@
       panel.querySelector('[data-v1942-open-templates]').addEventListener('click', () => openTemplateManager(null));
       panel.querySelector('[data-v1942-week-filter]').addEventListener('change', (event) => {
         const proxy = event.currentTarget;
+        const value = WEEK_VIEW_OPTIONS.includes(proxy.value) ? proxy.value : 'Teaching';
+        storeWeekView(value);
+        applyWeekDisplayFallback(week, value, panel.querySelector('[data-v1942-weekends]').checked);
         const native = nativeWeekSelect(week);
-        if (!native) { proxy.setAttribute('aria-invalid', 'true'); return; }
+        if (native) setReactControlValue(native, value);
+        proxy.disabled = false;
         proxy.removeAttribute('aria-invalid');
-        setReactControlValue(native, proxy.value);
-        window.setTimeout(() => {
-          const current = nativeWeekSelect(week);
-          if (current && String(current.value) !== String(proxy.value)) setReactControlValue(current, proxy.value);
-          scheduleMaintenance();
-        }, 40);
+        window.setTimeout(scheduleMaintenance, 60);
       });
       panel.querySelector('[data-v1942-weekends]').addEventListener('change', (event) => {
         const proxy = event.currentTarget;
+        storeWeekends(proxy.checked);
+        applyWeekDisplayFallback(week, panel.querySelector('[data-v1942-week-filter]').value, proxy.checked);
         const native = nativeWeekendCheckbox(week);
-        if (!native) { proxy.setAttribute('aria-invalid', 'true'); return; }
+        if (native) setReactCheckbox(native, proxy.checked);
+        proxy.disabled = false;
         proxy.removeAttribute('aria-invalid');
-        setReactCheckbox(native, proxy.checked);
-        window.setTimeout(() => {
-          const current = nativeWeekendCheckbox(week);
-          if (current && current.checked !== proxy.checked) setReactCheckbox(current, proxy.checked);
-          scheduleMaintenance();
-        }, 40);
+        window.setTimeout(scheduleMaintenance, 60);
       });
     }
 
@@ -504,37 +589,25 @@
 
     const sourceSelect = nativeWeekSelect(week);
     const proxySelect = panel.querySelector('[data-v1942-week-filter]');
-    if (sourceSelect && proxySelect) {
-      const signature = [...sourceSelect.options].map((option) => `${option.value}:${option.textContent}`).join('|');
-      if (proxySelect.dataset.optionsSignature !== signature) {
-        proxySelect.innerHTML = [...sourceSelect.options].map((option) => `<option value="${esc(option.value)}">${esc(option.textContent)}</option>`).join('');
-        proxySelect.dataset.optionsSignature = signature;
-      }
-      proxySelect.value = sourceSelect.value;
-      proxySelect.disabled = false;
-      proxySelect.removeAttribute('aria-invalid');
-      hideNativeWeekControl(sourceSelect.closest('label') || sourceSelect.parentElement);
-    } else if (proxySelect) {
-      proxySelect.disabled = true;
-      proxySelect.setAttribute('aria-invalid', 'true');
-    }
+    const storedView = storedWeekView();
+    const desiredView = storedView || (sourceSelect && WEEK_VIEW_OPTIONS.includes(sourceSelect.value) ? sourceSelect.value : proxySelect.value || 'Teaching');
+    if (sourceSelect && String(sourceSelect.value) !== String(desiredView)) setReactControlValue(sourceSelect, desiredView);
+    proxySelect.value = WEEK_VIEW_OPTIONS.includes(desiredView) ? desiredView : 'Teaching';
+    proxySelect.disabled = false;
+    proxySelect.removeAttribute('aria-invalid');
+
     const sourceWeekend = nativeWeekendCheckbox(week);
     const proxyWeekend = panel.querySelector('[data-v1942-weekends]');
-    if (sourceWeekend && proxyWeekend) {
-      proxyWeekend.checked = sourceWeekend.checked;
-      proxyWeekend.disabled = false;
-      proxyWeekend.removeAttribute('aria-invalid');
-      hideNativeWeekControl(sourceWeekend.closest('label') || sourceWeekend.parentElement);
-    } else if (proxyWeekend) {
-      proxyWeekend.disabled = true;
-      proxyWeekend.setAttribute('aria-invalid', 'true');
-    }
+    const storedWeekendValue = storedWeekends();
+    const desiredWeekend = storedWeekendValue === null ? (sourceWeekend ? sourceWeekend.checked : Boolean(week.querySelector('.day-column.weekend'))) : storedWeekendValue;
+    if (sourceWeekend && sourceWeekend.checked !== desiredWeekend) setReactCheckbox(sourceWeekend, desiredWeekend);
+    proxyWeekend.checked = desiredWeekend;
+    proxyWeekend.disabled = false;
+    proxyWeekend.removeAttribute('aria-invalid');
+    applyWeekDisplayFallback(week, proxySelect.value, proxyWeekend.checked);
 
     const heading = [...week.querySelectorAll('h1,h2')].find((node) => !node.closest('[data-v1942-week-header]') && /^week$/i.test(text(node)));
-    if (heading) {
-      const nativeHeader = heading.closest('.page-header') || heading.parentElement;
-      hideNativeWeekControl(nativeHeader);
-    }
+    if (heading) hideNativeWeekControl(heading.closest('.page-header') || heading.parentElement);
     const navButtons = [
       nativeWeekButton(week, /^(previous|prev)\b|‹|←/i),
       nativeWeekButton(week, /^this week$|^today$/i),
@@ -542,11 +615,14 @@
     ].filter(Boolean);
     const navParent = navButtons.length === 3 && navButtons.every((button) => button.parentElement === navButtons[0].parentElement) ? navButtons[0].parentElement : null;
     if (navParent) hideNativeWeekControl(navParent); else navButtons.forEach((button) => hideNativeWeekControl(button));
-    const nativeToolbar = week.querySelector('.week-toolbar');
+    const nativeToolbar = nativeWeekToolbar(week);
     if (nativeToolbar) hideNativeWeekControl(nativeToolbar);
-    panel.dataset.controlsReady = String(Boolean(sourceSelect && sourceWeekend));
+
+    const controlsMode = sourceSelect && sourceWeekend ? 'native' : sourceSelect || sourceWeekend ? 'hybrid' : 'fallback';
+    panel.dataset.controlsReady = 'true';
+    panel.dataset.controlsMode = controlsMode;
     document.documentElement.dataset.v1942WeekHeader = 'true';
-    document.documentElement.dataset.v1943WeekControls = panel.dataset.controlsReady;
+    document.documentElement.dataset.v1945WeekControls = controlsMode;
   }
   function installTemplateControls() {
     document.querySelectorAll('.planning-editor .v19-flow-editor').forEach((shell) => {
@@ -715,10 +791,10 @@
 
   function scheduleMaintenance(){if(maintenanceQueued)return;maintenanceQueued=true;requestAnimationFrame(()=>{maintenanceQueued=false;maintain()})}
   function maintain(){decorateStableBlockLinks();installTemplateControls();installFlowDragAndCollapse();installLearnerSupportTab();renderTodayNotices()}
-  function start(){migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.4';console.info('Classroom v19.4.4 Week Controls & Draft Status loaded.')},60)}
+  function start(){migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.5';console.info('Classroom v19.4.5 Week Control Recovery loaded.')},60)}
 
   window.ClassroomV19WorkflowDiagnostics={
-    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox
+    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox,applyWeekDisplayFallback,parseMinuteRange
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

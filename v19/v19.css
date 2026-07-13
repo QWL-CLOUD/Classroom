@@ -1943,7 +1943,7 @@ button.v19-metric {
 .v194-today-empty{margin:0;color:var(--v19-muted);font-size:13px}
 @media(max-width:760px){.v194-form-grid{grid-template-columns:1fr}.v194-form-grid label.wide,.v194-form-grid .wide{grid-column:auto}.v194-template-card,.v194-support-header{align-items:stretch;flex-direction:column}.v194-notice-card{grid-template-columns:1fr}.v194-notice-actions{justify-content:flex-start}.v194-today-notice{grid-template-columns:1fr}}
 
-/* Classroom v19.4.4 — Week Controls, Spacing & Draft Status */
+/* Classroom v19.4.5 — Week Control Recovery */
 .v19-modal-overlay {
   position: fixed;
   inset: 0;
@@ -2223,4 +2223,25 @@ button.v19-metric {
   background: #dfeadd !important;
   color: #4d694c !important;
   border-color: rgba(77, 105, 76, .12) !important;
+}
+
+
+/* v19.4.5: controls stay enabled even while the native React toolbar is reconnecting. */
+.v1942-week-filter select,
+.v1942-weekend-toggle,
+.v1942-weekend-toggle .track {
+  cursor: pointer;
+}
+
+.v1942-week-filter select[aria-invalid="true"],
+.v1942-weekend-toggle input[aria-invalid="true"] + .track {
+  opacity: 1;
+}
+
+.week-workspace[data-v1945-show-weekends="false"] .day-column.weekend {
+  display: none !important;
+}
+
+.week-workspace .workspace-item.v1945-view-hidden {
+  display: none !important;
 }
