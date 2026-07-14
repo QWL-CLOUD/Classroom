@@ -1,12 +1,12 @@
 {
-  "name": "Classroom v19.4.6 · Week Render & Friday Schedule Repair",
-  "short_name": "Classroom v19.4.6",
+  "name": "Classroom v19.4.7 · Friday Block Identity & Ordering",
+  "short_name": "Classroom v19.4.7",
   "description": "Prevents duplicate Week headers during React rerenders, preserves working Week controls, formats legacy Friday minute ranges as clock times, and restores stable Friday Schedule Block matching.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F5F3EE",
   "theme_color": "#334B4F",
-  "version": "19.4.6",
+  "version": "19.4.7",
   "icons": []
 }
