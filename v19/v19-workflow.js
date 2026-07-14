@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.7';
+  const VERSION = '19.4.8';
   const KEYS = {
     templates: 'cos-planning-templates-v19',
     notices: 'cos-learner-notices-v19',
@@ -490,6 +490,126 @@
       });
     });
   }
+  function addDaysISO(value, days) {
+    if (!validDate(value)) return '';
+    const date = new Date(`${value}T12:00:00`);
+    date.setDate(date.getDate() + Number(days || 0));
+    return dateISO(date);
+  }
+  function mondayFor(value) {
+    const date = validDate(value) ? new Date(`${value}T12:00:00`) : new Date();
+    date.setHours(12,0,0,0);
+    date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
+    return dateISO(date);
+  }
+  function navigateWeekDirect(targetDate, replace = false) {
+    const target = validDate(targetDate) ? targetDate : dateISO();
+    const api = diagnostics();
+    if (typeof api.navigateWeekTo === 'function') return api.navigateWeekTo(target, replace);
+    const monday = mondayFor(target);
+    try { localStorage.setItem('cos-focus-date', JSON.stringify(target)); } catch {}
+    const next = `#/week?date=${encodeURIComponent(monday)}`;
+    if (replace) history.replaceState({ classroomRoute:'week', v1948:true }, '', next);
+    else if (location.hash !== next) history.pushState({ classroomRoute:'week', v1948:true }, '', next);
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    return true;
+  }
+  function visibleWeekStart(week) {
+    const fromDiagnostics = diagnostics().visibleWeekAnchorDate?.() || diagnostics().visibleWeekRouteDate?.() || '';
+    if (validDate(fromDiagnostics)) return mondayFor(fromDiagnostics);
+    const route = new URLSearchParams(String(location.hash || '').split('?')[1] || '').get('date') || '';
+    if (validDate(route)) return mondayFor(route);
+    const label = text(week?.querySelector('[data-v1942-week-range]'));
+    return validDate(label) ? mondayFor(label) : mondayFor(dateISO());
+  }
+  function calendarEvents() {
+    const sources = [read('cos-calendar-events', []), read('cos-events', [])].flat().filter((event) => event && typeof event === 'object');
+    const seen = new Set();
+    return sources.filter((event) => {
+      const key = String(event.id || `${event.date || event.startDate || ''}|${event.title || event.name || ''}|${event.start || ''}`);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+  function eventStartDate(event) {
+    const value = event?.date || event?.startDate || event?.day || '';
+    return validDate(value) ? value : '';
+  }
+  function eventEndDate(event) {
+    const start = eventStartDate(event);
+    const value = event?.endDate || event?.dateEnd || start;
+    return validDate(value) && (!start || value >= start) ? value : start;
+  }
+  function eventOccursOn(event, date) {
+    const start = eventStartDate(event);
+    const end = eventEndDate(event);
+    return Boolean(start && validDate(date) && date >= start && date <= end);
+  }
+  function eventTimeLabel(event) {
+    const start = String(event?.start || event?.startTime || '').trim();
+    const end = String(event?.end || event?.endTime || '').trim();
+    return [start, end].filter(Boolean).join(end ? '–' : '');
+  }
+  function weekDayColumns(week) {
+    const columns = [...week.querySelectorAll(':scope .day-column, :scope .week-day-column, :scope [class*="week-day-column"]')]
+      .filter((node, index, all) => all.indexOf(node) === index && !node.closest('[data-v1942-week-header]'));
+    const start = visibleWeekStart(week);
+    return columns.slice(0, 7).map((column, index) => {
+      const date = addDaysISO(start, index);
+      column.dataset.v1948Date = date;
+      return { column, date, container: column.querySelector('.day-items, .week-day-items') };
+    });
+  }
+  function calendarCard(event, date) {
+    const article = document.createElement('article');
+    article.className = 'workspace-item calendar-week-item v1948-calendar-week-item';
+    article.dataset.v1948CalendarId = String(event.id || '');
+    article.dataset.date = date;
+    const title = event.title || event.name || 'Calendar event';
+    const category = event.category || event.type || 'Calendar';
+    const time = eventTimeLabel(event);
+    article.innerHTML = `<div class="workspace-item-main"><span class="workspace-item-time">${esc(time || 'All day')}</span><strong>${esc(title)}</strong><span>${esc(category)}</span></div>`;
+    return article;
+  }
+  function hideNativeEmptyState(column, hide) {
+    [...column.querySelectorAll('p,span,button,a,div')].forEach((node) => {
+      if (node.closest('.workspace-item, .v1948-calendar-empty')) return;
+      const value = text(node);
+      if (/^(No connected items|Add planning item)$/i.test(value)) node.classList.toggle('v1948-native-empty-hidden', Boolean(hide));
+    });
+  }
+  function renderCalendarFallback(week, view = storedWeekView() || 'Teaching') {
+    week.querySelectorAll('.v1948-calendar-week-item, .v1948-calendar-empty').forEach((node) => node.remove());
+    const calendarMode = view === 'Calendar' || view === 'Everything';
+    const columns = weekDayColumns(week);
+    columns.forEach(({ column }) => hideNativeEmptyState(column, calendarMode));
+    if (!calendarMode) return { rendered:0, dates:columns.length };
+    const events = calendarEvents();
+    let rendered = 0;
+    columns.forEach(({ column, date, container }) => {
+      if (!container || !validDate(date)) return;
+      const nativeCalendarItems = [...container.querySelectorAll('.calendar-week-item:not(.v1948-calendar-week-item)')];
+      const matches = events.filter((event) => eventOccursOn(event, date));
+      if (!nativeCalendarItems.length) {
+        matches.forEach((event) => {
+          container.appendChild(calendarCard(event, date));
+          rendered += 1;
+        });
+      }
+      const visibleCalendar = container.querySelector('.calendar-week-item:not(.v1945-view-hidden)');
+      if (!visibleCalendar) {
+        const empty = document.createElement('div');
+        empty.className = 'v1948-calendar-empty';
+        empty.innerHTML = '<strong>No calendar events</strong><span>Nothing scheduled for this day.</span>';
+        container.appendChild(empty);
+      }
+    });
+    week.dataset.v1948CalendarRendered = String(rendered);
+    week.dataset.v1948CalendarWeekStart = visibleWeekStart(week);
+    return { rendered, dates:columns.length };
+  }
+
   function nativeWeekButton(week, pattern) {
     return [...week.querySelectorAll('button')].find((button) => !button.closest('[data-v1942-week-header]') && pattern.test(text(button))) || null;
   }
@@ -668,14 +788,21 @@
           </div>
         </div>`;
       week.prepend(panel);
-      panel.querySelector('[data-v1942-week-action="previous"]').addEventListener('click', () => nativeWeekButton(week, /^(previous|prev)\b|‹|←/i)?.click());
-      panel.querySelector('[data-v1942-week-action="today"]').addEventListener('click', () => nativeWeekButton(week, /^this week$|^today$/i)?.click());
-      panel.querySelector('[data-v1942-week-action="next"]').addEventListener('click', () => nativeWeekButton(week, /^next\b|›|→/i)?.click());
+      panel.querySelector('[data-v1942-week-action="previous"]').addEventListener('click', () => {
+        navigateWeekDirect(addDaysISO(visibleWeekStart(week), -7));
+      });
+      panel.querySelector('[data-v1942-week-action="today"]').addEventListener('click', () => {
+        navigateWeekDirect(dateISO());
+      });
+      panel.querySelector('[data-v1942-week-action="next"]').addEventListener('click', () => {
+        navigateWeekDirect(addDaysISO(visibleWeekStart(week), 7));
+      });
       panel.querySelector('[data-v1942-open-templates]').addEventListener('click', () => openTemplateManager(null));
       panel.querySelector('[data-v1942-week-filter]').addEventListener('change', (event) => {
         const proxy = event.currentTarget;
         const value = WEEK_VIEW_OPTIONS.includes(proxy.value) ? proxy.value : 'Teaching';
         storeWeekView(value);
+        renderCalendarFallback(week, value);
         applyWeekDisplayFallback(week, value, panel.querySelector('[data-v1942-weekends]').checked);
         const native = nativeWeekSelect(week);
         if (native) setReactControlValue(native, value);
@@ -717,6 +844,7 @@
     proxyWeekend.checked = desiredWeekend;
     proxyWeekend.disabled = false;
     proxyWeekend.removeAttribute('aria-invalid');
+    renderCalendarFallback(week, proxySelect.value);
     applyWeekDisplayFallback(week, proxySelect.value, proxyWeekend.checked);
 
     hideNativeWeekChrome(week, panel);
@@ -735,6 +863,8 @@
     const controlsMode = sourceSelect && sourceWeekend ? 'native' : sourceSelect || sourceWeekend ? 'hybrid' : 'fallback';
     panel.dataset.controlsReady = 'true';
     panel.dataset.controlsMode = controlsMode;
+    panel.dataset.navigationMode = 'direct-route';
+    panel.dataset.thisWeekTarget = mondayFor(dateISO());
     document.documentElement.dataset.v1942WeekHeader = 'true';
     document.documentElement.dataset.v1946WeekControls = controlsMode;
     document.documentElement.dataset.v1946WeekControlsVerified = 'true';
@@ -914,10 +1044,10 @@
 
   function scheduleMaintenance(){if(maintenanceQueued)return;maintenanceQueued=true;requestAnimationFrame(()=>{maintenanceQueued=false;maintain()})}
   function maintain(){normalizeWeekCardTimes();decorateStableBlockLinks();orderWeekCardsChronologically();installTemplateControls();installFlowDragAndCollapse();installLearnerSupportTab();renderTodayNotices()}
-  function start(){document.documentElement.dataset.v1946CompactWeek='true';migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.7';console.info('Classroom v19.4.7 Friday Block Identity & Ordering loaded.')},60)}
+  function start(){document.documentElement.dataset.v1946CompactWeek='true';migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.8';console.info('Classroom v19.4.8 Week Navigation & Calendar Rendering loaded.')},60)}
 
   window.ClassroomV19WorkflowDiagnostics={
-    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox,applyWeekDisplayFallback,parseMinuteRange,canonicalMinuteRange,normalizeWeekCardTimes,blockMatchesCardTimeAndDay,knownFridayBlockForCard,synchronizeWeekCardIdentity,orderWeekCardsChronologically
+    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox,applyWeekDisplayFallback,navigateWeekDirect,renderCalendarFallback,calendarEvents,visibleWeekStart,parseMinuteRange,canonicalMinuteRange,normalizeWeekCardTimes,blockMatchesCardTimeAndDay,knownFridayBlockForCard,synchronizeWeekCardIdentity,orderWeekCardsChronologically
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

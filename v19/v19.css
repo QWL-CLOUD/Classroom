@@ -2269,3 +2269,56 @@ html[data-v1946-compact-week="true"] .week-workspace > [data-v1942-week-header] 
 .week-workspace [data-v1946-canonical-time="true"] {
   font-variant-numeric: tabular-nums;
 }
+
+
+/* Classroom v19.4.8 — direct Week navigation and usable Calendar fallback */
+.week-workspace .v1948-calendar-week-item {
+  border-left-color: #7f9892 !important;
+  background: #fbfcfb !important;
+}
+.week-workspace .v1948-calendar-week-item .workspace-item-main {
+  display: grid;
+  gap: 4px;
+  padding: 14px 13px;
+}
+.week-workspace .v1948-calendar-week-item .workspace-item-time {
+  color: var(--v19-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+.week-workspace .v1948-calendar-week-item strong {
+  color: var(--v19-ink);
+  font-size: 14px;
+  line-height: 1.2;
+}
+.week-workspace .v1948-calendar-week-item .workspace-item-main > span:last-child {
+  color: var(--v19-muted);
+  font-size: 12px;
+}
+.week-workspace .v1948-calendar-empty {
+  display: grid;
+  gap: 5px;
+  place-items: center;
+  min-height: 118px;
+  padding: 18px 12px;
+  color: var(--v19-muted);
+  text-align: center;
+}
+.week-workspace .v1948-calendar-empty strong {
+  color: #6d797a;
+  font-size: 13px;
+}
+.week-workspace .v1948-calendar-empty span {
+  font-size: 11px;
+}
+.week-workspace .v1948-native-empty-hidden {
+  display: none !important;
+}
+.week-workspace[data-v1945-view-mode="teaching"] .v1948-calendar-week-item,
+.week-workspace[data-v1945-view-mode="all-schedule"] .v1948-calendar-week-item,
+.week-workspace[data-v1945-view-mode="personal-agenda"] .v1948-calendar-week-item,
+.week-workspace[data-v1945-view-mode="teaching"] .v1948-calendar-empty,
+.week-workspace[data-v1945-view-mode="all-schedule"] .v1948-calendar-empty,
+.week-workspace[data-v1945-view-mode="personal-agenda"] .v1948-calendar-empty {
+  display: none !important;
+}
