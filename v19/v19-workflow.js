@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.8';
+  const VERSION = '19.4.6';
   const KEYS = {
     templates: 'cos-planning-templates-v19',
     notices: 'cos-learner-notices-v19',
@@ -131,63 +131,6 @@
   function cardTimeRange(card) {
     return parseMinuteRange(text(card.querySelector('.v19-week-card-time, .workspace-item-time')));
   }
-  function cardDateValue(card) {
-    return card?.dataset?.v19StableDate || card?.dataset?.date || card?.dataset?.v19CardDate || '';
-  }
-  function knownFridayBlockForCard(card) {
-    const date = cardDateValue(card);
-    if (weekdayForDate(date) !== 'Friday') return null;
-    const range = cardTimeRange(card);
-    if (!range) return null;
-    const key = `${range.start}-${range.end}`;
-    const preferredIds = {
-      '510-530': ['FR-STRONGSTART', 'FR-STRONG-START'],
-      '530-590': ['FR-MATH'],
-      '600-710': ['FR-FLEX', 'FR-FLEXIBLE']
-    }[key] || [];
-    for (const candidateId of preferredIds) {
-      const block = blockById(candidateId);
-      if (block) return block;
-    }
-    const fridayBlocks = scheduleBlocks().filter((block) => /^FR[-_]/i.test(String(block?.id || '')));
-    const exact = fridayBlocks.filter((block) => {
-      const blockRange = blockTimeRange(block);
-      return blockRange && Math.abs(blockRange.start-range.start) <= 1 && Math.abs(blockRange.end-range.end) <= 1;
-    });
-    return exact.length === 1 ? exact[0] : null;
-  }
-  function fridayIdentityFallback(block) {
-    const idValue = String(block?.id || '').toUpperCase();
-    if (/FR[-_]STRONG/.test(idValue)) return { title:'Strong Start', subtitle:'SEL' };
-    if (/FR[-_]MATH/.test(idValue)) return { title:'Math', subtitle:'Math' };
-    if (/FR[-_](FLEX|FLEXIBLE)/.test(idValue)) return { title:'Flexible Block', subtitle:'Teaching' };
-    return { title:blockName(block), subtitle:block?.subject || block?.category || block?.type || '' };
-  }
-  function synchronizeWeekCardIdentity(card, block) {
-    if (!card || !block) return;
-    const date = cardDateValue(card);
-    if (weekdayForDate(date) !== 'Friday') return;
-    const fallback = fridayIdentityFallback(block);
-    const titleNode = card.querySelector(':scope > .workspace-item-main > strong, :scope > .v19-week-card-main > strong');
-    const subtitleNode = [...card.querySelectorAll(':scope > .workspace-item-main > span, :scope > .v19-week-card-main > span')].find((node) => !node.matches('.workspace-item-time,.v19-week-card-time,.status-chip,.v19-week-status'));
-    const currentTitle = text(titleNode);
-    const preferredTitle = blockName(block) || fallback.title;
-    if (titleNode && preferredTitle && (/^block\s*\d+$/i.test(currentTitle) || currentTitle !== preferredTitle)) titleNode.textContent = preferredTitle;
-    const currentSubtitle = text(subtitleNode);
-    const preferredSubtitle = block?.subject || block?.category || block?.type || fallback.subtitle;
-    if (subtitleNode && preferredSubtitle && (!currentSubtitle || /^(other|teaching)$/i.test(currentSubtitle) || currentSubtitle !== preferredSubtitle)) subtitleNode.textContent = preferredSubtitle;
-  }
-  function orderWeekCardsChronologically() {
-    const containers = [...document.querySelectorAll('.week-workspace .day-items, .week-workspace .week-day-items')];
-    containers.forEach((container) => {
-      const items = [...container.children].filter((node) => node.matches?.('.workspace-item, .schedule-week-item, .calendar-week-item, .standalone-session-card, .v19-week-card'));
-      const ordered = items.map((node, index) => ({ node, index, range: cardTimeRange(node) }))
-        .sort((a,b) => (a.range?.start ?? 9999) - (b.range?.start ?? 9999) || a.index - b.index);
-      const changed = ordered.some((entry, index) => entry.node !== items[index]);
-      if (changed) ordered.forEach((entry) => container.appendChild(entry.node));
-      ordered.forEach((entry, index) => { entry.node.dataset.v1947ChronologicalOrder = String(index); });
-    });
-  }
   function blockTimeRange(block) {
     const start = toMinutes(block?.start ?? block?.startTime);
     const end = toMinutes(block?.end ?? block?.endTime);
@@ -266,8 +209,6 @@
     return Math.abs(range.start - blockRange.start) <= 1 && Math.abs(range.end - blockRange.end) <= 1;
   }
   function stableBlockForCard(card) {
-    const fridayKnown = knownFridayBlockForCard(card);
-    if (fridayKnown) return fridayKnown;
     const existing = card.dataset.scheduleBlockId || card.dataset.blockId || card.querySelector('[data-schedule-block-id]')?.dataset.scheduleBlockId || '';
     if (existing && blockById(existing)) return blockById(existing);
     const lesson = diagnostics().lessonForBumpCard?.(card);
@@ -293,7 +234,6 @@
       card.dataset.scheduleBlockId = String(block.id);
       const parent = parentBlockFor(block);
       if (parent?.id) card.dataset.parentBlockId = String(parent.id);
-      synchronizeWeekCardIdentity(card, block);
       const lesson = diagnostics().lessonForBumpCard?.(card);
       if (lesson && (!lesson.scheduleBlockId || String(lesson.scheduleBlockId) !== String(block.id))) {
         const record = lessons.find((item) => String(item.id) === String(lesson.id));
@@ -490,126 +430,6 @@
       });
     });
   }
-  function addDaysISO(value, days) {
-    if (!validDate(value)) return '';
-    const date = new Date(`${value}T12:00:00`);
-    date.setDate(date.getDate() + Number(days || 0));
-    return dateISO(date);
-  }
-  function mondayFor(value) {
-    const date = validDate(value) ? new Date(`${value}T12:00:00`) : new Date();
-    date.setHours(12,0,0,0);
-    date.setDate(date.getDate() - ((date.getDay() + 6) % 7));
-    return dateISO(date);
-  }
-  function navigateWeekDirect(targetDate, replace = false) {
-    const target = validDate(targetDate) ? targetDate : dateISO();
-    const api = diagnostics();
-    if (typeof api.navigateWeekTo === 'function') return api.navigateWeekTo(target, replace);
-    const monday = mondayFor(target);
-    try { localStorage.setItem('cos-focus-date', JSON.stringify(target)); } catch {}
-    const next = `#/week?date=${encodeURIComponent(monday)}`;
-    if (replace) history.replaceState({ classroomRoute:'week', v1948:true }, '', next);
-    else if (location.hash !== next) history.pushState({ classroomRoute:'week', v1948:true }, '', next);
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
-    return true;
-  }
-  function visibleWeekStart(week) {
-    const fromDiagnostics = diagnostics().visibleWeekAnchorDate?.() || diagnostics().visibleWeekRouteDate?.() || '';
-    if (validDate(fromDiagnostics)) return mondayFor(fromDiagnostics);
-    const route = new URLSearchParams(String(location.hash || '').split('?')[1] || '').get('date') || '';
-    if (validDate(route)) return mondayFor(route);
-    const label = text(week?.querySelector('[data-v1942-week-range]'));
-    return validDate(label) ? mondayFor(label) : mondayFor(dateISO());
-  }
-  function calendarEvents() {
-    const sources = [read('cos-calendar-events', []), read('cos-events', [])].flat().filter((event) => event && typeof event === 'object');
-    const seen = new Set();
-    return sources.filter((event) => {
-      const key = String(event.id || `${event.date || event.startDate || ''}|${event.title || event.name || ''}|${event.start || ''}`);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  }
-  function eventStartDate(event) {
-    const value = event?.date || event?.startDate || event?.day || '';
-    return validDate(value) ? value : '';
-  }
-  function eventEndDate(event) {
-    const start = eventStartDate(event);
-    const value = event?.endDate || event?.dateEnd || start;
-    return validDate(value) && (!start || value >= start) ? value : start;
-  }
-  function eventOccursOn(event, date) {
-    const start = eventStartDate(event);
-    const end = eventEndDate(event);
-    return Boolean(start && validDate(date) && date >= start && date <= end);
-  }
-  function eventTimeLabel(event) {
-    const start = String(event?.start || event?.startTime || '').trim();
-    const end = String(event?.end || event?.endTime || '').trim();
-    return [start, end].filter(Boolean).join(end ? '–' : '');
-  }
-  function weekDayColumns(week) {
-    const columns = [...week.querySelectorAll(':scope .day-column, :scope .week-day-column, :scope [class*="week-day-column"]')]
-      .filter((node, index, all) => all.indexOf(node) === index && !node.closest('[data-v1942-week-header]'));
-    const start = visibleWeekStart(week);
-    return columns.slice(0, 7).map((column, index) => {
-      const date = addDaysISO(start, index);
-      column.dataset.v1948Date = date;
-      return { column, date, container: column.querySelector('.day-items, .week-day-items') };
-    });
-  }
-  function calendarCard(event, date) {
-    const article = document.createElement('article');
-    article.className = 'workspace-item calendar-week-item v1948-calendar-week-item';
-    article.dataset.v1948CalendarId = String(event.id || '');
-    article.dataset.date = date;
-    const title = event.title || event.name || 'Calendar event';
-    const category = event.category || event.type || 'Calendar';
-    const time = eventTimeLabel(event);
-    article.innerHTML = `<div class="workspace-item-main"><span class="workspace-item-time">${esc(time || 'All day')}</span><strong>${esc(title)}</strong><span>${esc(category)}</span></div>`;
-    return article;
-  }
-  function hideNativeEmptyState(column, hide) {
-    [...column.querySelectorAll('p,span,button,a,div')].forEach((node) => {
-      if (node.closest('.workspace-item, .v1948-calendar-empty')) return;
-      const value = text(node);
-      if (/^(No connected items|Add planning item)$/i.test(value)) node.classList.toggle('v1948-native-empty-hidden', Boolean(hide));
-    });
-  }
-  function renderCalendarFallback(week, view = storedWeekView() || 'Teaching') {
-    week.querySelectorAll('.v1948-calendar-week-item, .v1948-calendar-empty').forEach((node) => node.remove());
-    const calendarMode = view === 'Calendar' || view === 'Everything';
-    const columns = weekDayColumns(week);
-    columns.forEach(({ column }) => hideNativeEmptyState(column, calendarMode));
-    if (!calendarMode) return { rendered:0, dates:columns.length };
-    const events = calendarEvents();
-    let rendered = 0;
-    columns.forEach(({ column, date, container }) => {
-      if (!container || !validDate(date)) return;
-      const nativeCalendarItems = [...container.querySelectorAll('.calendar-week-item:not(.v1948-calendar-week-item)')];
-      const matches = events.filter((event) => eventOccursOn(event, date));
-      if (!nativeCalendarItems.length) {
-        matches.forEach((event) => {
-          container.appendChild(calendarCard(event, date));
-          rendered += 1;
-        });
-      }
-      const visibleCalendar = container.querySelector('.calendar-week-item:not(.v1945-view-hidden)');
-      if (!visibleCalendar) {
-        const empty = document.createElement('div');
-        empty.className = 'v1948-calendar-empty';
-        empty.innerHTML = '<strong>No calendar events</strong><span>Nothing scheduled for this day.</span>';
-        container.appendChild(empty);
-      }
-    });
-    week.dataset.v1948CalendarRendered = String(rendered);
-    week.dataset.v1948CalendarWeekStart = visibleWeekStart(week);
-    return { rendered, dates:columns.length };
-  }
-
   function nativeWeekButton(week, pattern) {
     return [...week.querySelectorAll('button')].find((button) => !button.closest('[data-v1942-week-header]') && pattern.test(text(button))) || null;
   }
@@ -788,21 +608,14 @@
           </div>
         </div>`;
       week.prepend(panel);
-      panel.querySelector('[data-v1942-week-action="previous"]').addEventListener('click', () => {
-        navigateWeekDirect(addDaysISO(visibleWeekStart(week), -7));
-      });
-      panel.querySelector('[data-v1942-week-action="today"]').addEventListener('click', () => {
-        navigateWeekDirect(dateISO());
-      });
-      panel.querySelector('[data-v1942-week-action="next"]').addEventListener('click', () => {
-        navigateWeekDirect(addDaysISO(visibleWeekStart(week), 7));
-      });
+      panel.querySelector('[data-v1942-week-action="previous"]').addEventListener('click', () => nativeWeekButton(week, /^(previous|prev)\b|‹|←/i)?.click());
+      panel.querySelector('[data-v1942-week-action="today"]').addEventListener('click', () => nativeWeekButton(week, /^this week$|^today$/i)?.click());
+      panel.querySelector('[data-v1942-week-action="next"]').addEventListener('click', () => nativeWeekButton(week, /^next\b|›|→/i)?.click());
       panel.querySelector('[data-v1942-open-templates]').addEventListener('click', () => openTemplateManager(null));
       panel.querySelector('[data-v1942-week-filter]').addEventListener('change', (event) => {
         const proxy = event.currentTarget;
         const value = WEEK_VIEW_OPTIONS.includes(proxy.value) ? proxy.value : 'Teaching';
         storeWeekView(value);
-        renderCalendarFallback(week, value);
         applyWeekDisplayFallback(week, value, panel.querySelector('[data-v1942-weekends]').checked);
         const native = nativeWeekSelect(week);
         if (native) setReactControlValue(native, value);
@@ -844,7 +657,6 @@
     proxyWeekend.checked = desiredWeekend;
     proxyWeekend.disabled = false;
     proxyWeekend.removeAttribute('aria-invalid');
-    renderCalendarFallback(week, proxySelect.value);
     applyWeekDisplayFallback(week, proxySelect.value, proxyWeekend.checked);
 
     hideNativeWeekChrome(week, panel);
@@ -863,8 +675,6 @@
     const controlsMode = sourceSelect && sourceWeekend ? 'native' : sourceSelect || sourceWeekend ? 'hybrid' : 'fallback';
     panel.dataset.controlsReady = 'true';
     panel.dataset.controlsMode = controlsMode;
-    panel.dataset.navigationMode = 'direct-route';
-    panel.dataset.thisWeekTarget = mondayFor(dateISO());
     document.documentElement.dataset.v1942WeekHeader = 'true';
     document.documentElement.dataset.v1946WeekControls = controlsMode;
     document.documentElement.dataset.v1946WeekControlsVerified = 'true';
@@ -1043,11 +853,11 @@
   }
 
   function scheduleMaintenance(){if(maintenanceQueued)return;maintenanceQueued=true;requestAnimationFrame(()=>{maintenanceQueued=false;maintain()})}
-  function maintain(){normalizeWeekCardTimes();decorateStableBlockLinks();orderWeekCardsChronologically();installTemplateControls();installFlowDragAndCollapse();installLearnerSupportTab();renderTodayNotices()}
-  function start(){document.documentElement.dataset.v1946CompactWeek='true';migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.8';console.info('Classroom v19.4.8 Week Navigation & Calendar Rendering loaded.')},60)}
+  function maintain(){normalizeWeekCardTimes();decorateStableBlockLinks();installTemplateControls();installFlowDragAndCollapse();installLearnerSupportTab();renderTodayNotices()}
+  function start(){document.documentElement.dataset.v1946CompactWeek='true';migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.6';console.info('Classroom v19.4.6 Week Render & Friday Schedule Repair loaded.')},60)}
 
   window.ClassroomV19WorkflowDiagnostics={
-    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox,applyWeekDisplayFallback,navigateWeekDirect,renderCalendarFallback,calendarEvents,visibleWeekStart,parseMinuteRange,canonicalMinuteRange,normalizeWeekCardTimes,blockMatchesCardTimeAndDay,knownFridayBlockForCard,synchronizeWeekCardIdentity,orderWeekCardsChronologically
+    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox,applyWeekDisplayFallback,parseMinuteRange,canonicalMinuteRange,normalizeWeekCardTimes,blockMatchesCardTimeAndDay
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

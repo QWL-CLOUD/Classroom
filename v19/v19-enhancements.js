@@ -1,8 +1,8 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.8';
-  const RELEASE_LABEL = 'v19.4.8 · Week Navigation & Calendar Rendering';
+  const VERSION = '19.4.6';
+  const RELEASE_LABEL = 'v19.4.6 · Week Render & Friday Schedule Repair';
   const ROUTES = {
     today: { label: 'Today', path: 'today', aliases: ['Today', 'Today workspace', 'Home'] },
     week: { label: 'Week', path: 'week', aliases: ['Week', 'Weekly planner', 'Week workspace'] },
@@ -502,21 +502,6 @@
       window.setTimeout(step, 90);
     };
     step();
-  }
-
-  function navigateWeekTo(date, replace = false) {
-    if (!localDate(date)) return false;
-    const monday = weekStartDate(date);
-    const next = buildHash('week', { date: monday });
-    setFocusDateSilently(date, 'week-header-direct-navigation');
-    if (location.hash === next) {
-      hideCustomPage();
-      navigateExisting(ROUTES.week, { date: monday });
-      window.setTimeout(() => applyDateToVisiblePage(monday), 40);
-      return true;
-    }
-    setHash('week', { date }, replace);
-    return true;
   }
 
   function navigateFromHash() {
@@ -1597,28 +1582,10 @@
     const weekControlsMode = weekHeader?.dataset.controlsMode || document.documentElement.dataset.v1946WeekControls || document.documentElement.dataset.v1945WeekControls || '';
     const weekControlsPreviouslyVerified = document.documentElement.dataset.v1946WeekControlsVerified === 'true';
     const weekHeaderControlsConnected = Boolean(['native','hybrid','fallback'].includes(weekControlsMode) && ((weekHeaderSelect && weekHeaderWeekend && weekHeader?.dataset.controlsReady === 'true') || weekControlsPreviouslyVerified));
-    const weekNavigationDirect = weekHeader?.dataset.navigationMode === 'direct-route';
-    const thisWeekTarget = weekHeader?.dataset.thisWeekTarget || '';
-    const expectedThisWeek = weekStartDate(toDateString(new Date()));
-    const thisWeekTargetCorrect = weekNavigationDirect && thisWeekTarget === expectedThisWeek;
-    const currentWeekView = weekHeaderSelect?.value || '';
-    const calendarFallbackReady = currentWeekView !== 'Calendar' && currentWeekView !== 'Everything'
-      ? true
-      : Boolean(document.querySelector('.week-workspace[data-v1948-calendar-week-start], .week-workspace [data-v1948-calendar-id], .week-workspace .v1948-calendar-empty'));
     const visibleDuplicateNativeWeekChrome = [...document.querySelectorAll('.week-workspace > .page-header, .week-workspace > .week-toolbar, .week-workspace > .workspace-header, .week-workspace > .week-page-header')]
       .filter((node) => !node.closest('[data-v1942-week-header]') && node.offsetParent !== null).length;
     const rawMinuteRangeCount = [...document.querySelectorAll('.week-workspace .workspace-item-time, .week-workspace .v19-week-card-time')]
       .filter((node) => /^\d{2,4}\s*[–—-]\s*\d{2,4}$/.test(text(node))).length;
-    const fridayCards = snapshotCards.filter((card) => {
-      if (!localDate(card.cardDate)) return false;
-      return localDate(card.cardDate).toLocaleDateString('en-US', { weekday:'long' }) === 'Friday';
-    });
-    const genericFridayBlockCount = fridayCards.filter((card) => /^block\s*\d+$/i.test(String(card.title || '').trim())).length;
-    const fridayOrderStarts = fridayCards.map((card) => {
-      const match = /^(\d{1,2}):(\d{2})/.exec(String(card.visibleTime || card.time || ''));
-      return match ? Number(match[1])*60 + Number(match[2]) : NaN;
-    }).filter(Number.isFinite);
-    const fridayOutOfOrder = fridayOrderStarts.some((value, index) => index > 0 && value < fridayOrderStarts[index-1]);
     const draftProbe = (() => {
       const host = document.createElement('div');
       host.className = 'week-workspace';
@@ -1674,12 +1641,8 @@
       { name: 'Bump uses safe single-lesson scope', status: 'pass', detail: `Implicit schedule-block series shifting disabled · ${implicitSeriesRisk} record(s) protected from accidental grouping` },
       { name: 'Week cards use stable Schedule Block IDs', status: !weekSnapshotAvailable ? 'warning' : weekCardsMissingStableBlock ? 'fail' : unresolvedLessonBlockLinks ? 'fail' : 'pass', detail: !weekSnapshotAvailable ? 'Run the live page test to capture Schedule Block links' : `${weekCardsMissingStableBlock} mounted card(s) without a stable Block ID · ${unresolvedLessonBlockLinks} lesson link(s) unresolved` },
       { name: 'Week View and Weekends controls are operable', status: weekSnapshotAvailable ? (weekHeaderControlsConnected ? 'pass' : 'fail') : 'warning', detail: weekSnapshotAvailable ? (weekHeaderControlsConnected ? `Controls enabled · ${weekControlsMode || 'unknown'} mode` : 'Custom Week controls are not ready') : 'Open Week and run the live page test' },
-      { name: 'This week uses the current local week', status: thisWeekTargetCorrect ? 'pass' : 'fail', detail: thisWeekTargetCorrect ? `Target Monday: ${thisWeekTarget}` : `Expected ${expectedThisWeek} · configured ${thisWeekTarget || 'none'}` },
-      { name: 'Calendar Week view has a rendering path', status: calendarFallbackReady ? 'pass' : 'fail', detail: currentWeekView === 'Calendar' || currentWeekView === 'Everything' ? 'Native or fallback calendar content is mounted' : 'Calendar renderer is installed and ready' },
       { name: 'Week compact header does not duplicate native controls', status: visibleDuplicateNativeWeekChrome ? 'fail' : 'pass', detail: `${visibleDuplicateNativeWeekChrome} visible duplicate native Week control area(s)` },
       { name: 'Week schedule times use canonical display', status: rawMinuteRangeCount ? 'fail' : 'pass', detail: `${rawMinuteRangeCount} raw minute-range label(s) still visible` },
-      { name: 'Friday Schedule Blocks use canonical identity', status: genericFridayBlockCount ? 'fail' : 'pass', detail: `${genericFridayBlockCount} generic Friday block label(s) remain` },
-      { name: 'Friday Schedule Blocks are chronological', status: fridayOutOfOrder ? 'fail' : 'pass', detail: fridayOutOfOrder ? 'Friday blocks are not ordered by start time' : 'Friday blocks are ordered by start time' },
       { name: 'Draft status keeps planned styling', status: draftProbe.matches ? 'pass' : 'fail', detail: draftProbe.matches ? `Draft and Ready use the same planned-state color (${draftProbe.draft})` : `Ready ${draftProbe.ready || 'none'} · Draft ${draftProbe.draft || 'none'}` },
       { name: 'Planning templates are structurally valid', status: invalidTemplateParents || invalidTemplateFlows ? 'fail' : 'pass', detail: `${templates.length} template(s) · ${invalidTemplateParents} invalid Parent Block link(s) · ${invalidTemplateFlows} invalid flow structure(s)` },
       { name: 'Learner notices use valid date ranges', status: invalidNoticeDates ? 'fail' : 'pass', detail: `${notices.length} notice(s) · ${invalidNoticeDates} invalid date range(s)` },
@@ -2413,7 +2376,6 @@
           title: text(titleNode),
           subtitle: text(subtitleNode),
           visibleStatus: text(statusNode),
-          visibleTime: text(card.querySelector(':scope > .workspace-item-main > .workspace-item-time, :scope > .v19-week-card-main > .v19-week-card-time')),
           scheduleBlockId: String(card.dataset.scheduleBlockId || card.dataset.blockId || card.querySelector('[data-schedule-block-id]')?.dataset?.scheduleBlockId || ''),
           matchedLesson: lesson ? summarizeLessonForDiagnostics(lesson) : null,
           bumpCount: card.querySelectorAll('[data-v19-bump]').length,
@@ -2827,7 +2789,7 @@
         routeBootstrapPending = false;
         syncHashFromActiveNav();
       }, 360);
-      document.documentElement.dataset.classroomVersion = '19.4.8';
+      document.documentElement.dataset.classroomVersion = '19.4.6';
       console.info(`Classroom v${VERSION} lesson and learner workflow loaded.`);
     }, 60);
   }
@@ -2846,7 +2808,6 @@
     bumpCardDate,
     visibleWeekAnchorDate,
     visibleWeekRouteDate,
-    navigateWeekTo,
     identifyBumpLesson,
     weekStartDate,
     stableWeekStart,
