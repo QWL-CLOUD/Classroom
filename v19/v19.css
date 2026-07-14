@@ -2247,7 +2247,7 @@ button.v19-metric {
 }
 
 
-/* Classroom v19.4.6 — persistent Week render guard and Friday time normalization */
+/* Classroom v19.4.7 — persistent Week render guard and Friday time normalization */
 html[data-v1946-compact-week="true"] .week-workspace > .page-header,
 html[data-v1946-compact-week="true"] .week-workspace > .workspace-header,
 html[data-v1946-compact-week="true"] .week-workspace > .week-page-header,

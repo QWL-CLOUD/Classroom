@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.6';
+  const VERSION = '19.4.7';
   const KEYS = {
     templates: 'cos-planning-templates-v19',
     notices: 'cos-learner-notices-v19',
@@ -131,6 +131,63 @@
   function cardTimeRange(card) {
     return parseMinuteRange(text(card.querySelector('.v19-week-card-time, .workspace-item-time')));
   }
+  function cardDateValue(card) {
+    return card?.dataset?.v19StableDate || card?.dataset?.date || card?.dataset?.v19CardDate || '';
+  }
+  function knownFridayBlockForCard(card) {
+    const date = cardDateValue(card);
+    if (weekdayForDate(date) !== 'Friday') return null;
+    const range = cardTimeRange(card);
+    if (!range) return null;
+    const key = `${range.start}-${range.end}`;
+    const preferredIds = {
+      '510-530': ['FR-STRONGSTART', 'FR-STRONG-START'],
+      '530-590': ['FR-MATH'],
+      '600-710': ['FR-FLEX', 'FR-FLEXIBLE']
+    }[key] || [];
+    for (const candidateId of preferredIds) {
+      const block = blockById(candidateId);
+      if (block) return block;
+    }
+    const fridayBlocks = scheduleBlocks().filter((block) => /^FR[-_]/i.test(String(block?.id || '')));
+    const exact = fridayBlocks.filter((block) => {
+      const blockRange = blockTimeRange(block);
+      return blockRange && Math.abs(blockRange.start-range.start) <= 1 && Math.abs(blockRange.end-range.end) <= 1;
+    });
+    return exact.length === 1 ? exact[0] : null;
+  }
+  function fridayIdentityFallback(block) {
+    const idValue = String(block?.id || '').toUpperCase();
+    if (/FR[-_]STRONG/.test(idValue)) return { title:'Strong Start', subtitle:'SEL' };
+    if (/FR[-_]MATH/.test(idValue)) return { title:'Math', subtitle:'Math' };
+    if (/FR[-_](FLEX|FLEXIBLE)/.test(idValue)) return { title:'Flexible Block', subtitle:'Teaching' };
+    return { title:blockName(block), subtitle:block?.subject || block?.category || block?.type || '' };
+  }
+  function synchronizeWeekCardIdentity(card, block) {
+    if (!card || !block) return;
+    const date = cardDateValue(card);
+    if (weekdayForDate(date) !== 'Friday') return;
+    const fallback = fridayIdentityFallback(block);
+    const titleNode = card.querySelector(':scope > .workspace-item-main > strong, :scope > .v19-week-card-main > strong');
+    const subtitleNode = [...card.querySelectorAll(':scope > .workspace-item-main > span, :scope > .v19-week-card-main > span')].find((node) => !node.matches('.workspace-item-time,.v19-week-card-time,.status-chip,.v19-week-status'));
+    const currentTitle = text(titleNode);
+    const preferredTitle = blockName(block) || fallback.title;
+    if (titleNode && preferredTitle && (/^block\s*\d+$/i.test(currentTitle) || currentTitle !== preferredTitle)) titleNode.textContent = preferredTitle;
+    const currentSubtitle = text(subtitleNode);
+    const preferredSubtitle = block?.subject || block?.category || block?.type || fallback.subtitle;
+    if (subtitleNode && preferredSubtitle && (!currentSubtitle || /^(other|teaching)$/i.test(currentSubtitle) || currentSubtitle !== preferredSubtitle)) subtitleNode.textContent = preferredSubtitle;
+  }
+  function orderWeekCardsChronologically() {
+    const containers = [...document.querySelectorAll('.week-workspace .day-items, .week-workspace .week-day-items')];
+    containers.forEach((container) => {
+      const items = [...container.children].filter((node) => node.matches?.('.workspace-item, .schedule-week-item, .calendar-week-item, .standalone-session-card, .v19-week-card'));
+      const ordered = items.map((node, index) => ({ node, index, range: cardTimeRange(node) }))
+        .sort((a,b) => (a.range?.start ?? 9999) - (b.range?.start ?? 9999) || a.index - b.index);
+      const changed = ordered.some((entry, index) => entry.node !== items[index]);
+      if (changed) ordered.forEach((entry) => container.appendChild(entry.node));
+      ordered.forEach((entry, index) => { entry.node.dataset.v1947ChronologicalOrder = String(index); });
+    });
+  }
   function blockTimeRange(block) {
     const start = toMinutes(block?.start ?? block?.startTime);
     const end = toMinutes(block?.end ?? block?.endTime);
@@ -209,6 +266,8 @@
     return Math.abs(range.start - blockRange.start) <= 1 && Math.abs(range.end - blockRange.end) <= 1;
   }
   function stableBlockForCard(card) {
+    const fridayKnown = knownFridayBlockForCard(card);
+    if (fridayKnown) return fridayKnown;
     const existing = card.dataset.scheduleBlockId || card.dataset.blockId || card.querySelector('[data-schedule-block-id]')?.dataset.scheduleBlockId || '';
     if (existing && blockById(existing)) return blockById(existing);
     const lesson = diagnostics().lessonForBumpCard?.(card);
@@ -234,6 +293,7 @@
       card.dataset.scheduleBlockId = String(block.id);
       const parent = parentBlockFor(block);
       if (parent?.id) card.dataset.parentBlockId = String(parent.id);
+      synchronizeWeekCardIdentity(card, block);
       const lesson = diagnostics().lessonForBumpCard?.(card);
       if (lesson && (!lesson.scheduleBlockId || String(lesson.scheduleBlockId) !== String(block.id))) {
         const record = lessons.find((item) => String(item.id) === String(lesson.id));
@@ -853,11 +913,11 @@
   }
 
   function scheduleMaintenance(){if(maintenanceQueued)return;maintenanceQueued=true;requestAnimationFrame(()=>{maintenanceQueued=false;maintain()})}
-  function maintain(){normalizeWeekCardTimes();decorateStableBlockLinks();installTemplateControls();installFlowDragAndCollapse();installLearnerSupportTab();renderTodayNotices()}
-  function start(){document.documentElement.dataset.v1946CompactWeek='true';migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.6';console.info('Classroom v19.4.6 Week Render & Friday Schedule Repair loaded.')},60)}
+  function maintain(){normalizeWeekCardTimes();decorateStableBlockLinks();orderWeekCardsChronologically();installTemplateControls();installFlowDragAndCollapse();installLearnerSupportTab();renderTodayNotices()}
+  function start(){document.documentElement.dataset.v1946CompactWeek='true';migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.7';console.info('Classroom v19.4.7 Friday Block Identity & Ordering loaded.')},60)}
 
   window.ClassroomV19WorkflowDiagnostics={
-    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox,applyWeekDisplayFallback,parseMinuteRange,canonicalMinuteRange,normalizeWeekCardTimes,blockMatchesCardTimeAndDay
+    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox,applyWeekDisplayFallback,parseMinuteRange,canonicalMinuteRange,normalizeWeekCardTimes,blockMatchesCardTimeAndDay,knownFridayBlockForCard,synchronizeWeekCardIdentity,orderWeekCardsChronologically
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();
