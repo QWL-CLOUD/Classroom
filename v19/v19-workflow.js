@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '19.4.5';
+  const VERSION = '19.4.6';
   const KEYS = {
     templates: 'cos-planning-templates-v19',
     notices: 'cos-learner-notices-v19',
@@ -88,6 +88,7 @@
     return blocks.filter((block) => !blockParentId(block) || !ids.has(blockParentId(block)));
   }
   function toMinutes(value) {
+    if (value === null || value === undefined || String(value).trim() === '') return NaN;
     if (Number.isFinite(Number(value))) return Number(value);
     const match = /^(\d{1,2}):(\d{2})/.exec(String(value || ''));
     return match ? Number(match[1])*60 + Number(match[2]) : NaN;
@@ -101,6 +102,31 @@
     const start = Number(match[1]);
     const end = Number(match[2]);
     return Number.isFinite(start) && Number.isFinite(end) && start >= 0 && end >= start && end <= 1440 ? { start, end } : null;
+  }
+  function formatClockMinutes(value) {
+    const minutes = Number(value);
+    if (!Number.isFinite(minutes) || minutes < 0 || minutes > 1440) return '';
+    const normalized = minutes === 1440 ? 0 : minutes;
+    return `${String(Math.floor(normalized / 60)).padStart(2, '0')}:${String(normalized % 60).padStart(2, '0')}`;
+  }
+  function canonicalMinuteRange(value) {
+    const raw = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!/^\d{2,4}\s*[–—-]\s*\d{2,4}$/.test(raw)) return '';
+    const range = parseMinuteRange(raw);
+    if (!range) return '';
+    const start = formatClockMinutes(range.start);
+    const end = formatClockMinutes(range.end);
+    return start && end ? `${start}–${end}` : '';
+  }
+  function normalizeWeekCardTimes() {
+    document.querySelectorAll('.week-workspace .workspace-item-time, .week-workspace .v19-week-card-time').forEach((node) => {
+      const raw = text(node);
+      const canonical = canonicalMinuteRange(raw);
+      if (!canonical || canonical === raw) return;
+      if (!node.dataset.v1946OriginalMinuteRange) node.dataset.v1946OriginalMinuteRange = raw;
+      node.textContent = canonical;
+      node.dataset.v1946CanonicalTime = 'true';
+    });
   }
   function cardTimeRange(card) {
     return parseMinuteRange(text(card.querySelector('.v19-week-card-time, .workspace-item-time')));
@@ -173,6 +199,15 @@
     const names = [cardTitle(card), cardSubtitle(card)].filter(Boolean);
     return names.some((name) => sameBlockName(blockName(block), name));
   }
+  function blockMatchesCardTimeAndDay(block, card) {
+    const date = card.dataset.v19StableDate || card.dataset.date || card.dataset.v19CardDate || '';
+    const weekday = weekdayForDate(date);
+    if (weekday && !blockAppliesToWeekday(block, weekday)) return false;
+    const range = cardTimeRange(card);
+    const blockRange = blockTimeRange(block);
+    if (!range || !blockRange) return false;
+    return Math.abs(range.start - blockRange.start) <= 1 && Math.abs(range.end - blockRange.end) <= 1;
+  }
   function stableBlockForCard(card) {
     const existing = card.dataset.scheduleBlockId || card.dataset.blockId || card.querySelector('[data-schedule-block-id]')?.dataset.scheduleBlockId || '';
     if (existing && blockById(existing)) return blockById(existing);
@@ -181,7 +216,13 @@
     const blocks = scheduleBlocks();
     let candidates = blocks.filter((block) => !blockParentId(block) && blockMatchesCard(block, card));
     if (candidates.length !== 1) candidates = blocks.filter((block) => blockMatchesCard(block, card));
-    return candidates.length === 1 ? candidates[0] : null;
+    if (candidates.length === 1) return candidates[0];
+
+    // Friday legacy records can have generic labels such as “Block 1” and numeric minute times.
+    // When the day and exact time range identify one top-level Schedule Block, use that stable ID.
+    let timeCandidates = blocks.filter((block) => !blockParentId(block) && blockMatchesCardTimeAndDay(block, card));
+    if (timeCandidates.length !== 1) timeCandidates = blocks.filter((block) => blockMatchesCardTimeAndDay(block, card));
+    return timeCandidates.length === 1 ? timeCandidates[0] : null;
   }
   function decorateStableBlockLinks() {
     const cards = diagnostics().weekCards?.() || [...document.querySelectorAll('.week-workspace .v19-week-card')];
@@ -527,13 +568,25 @@
     const target = shell ? node.parentElement : node;
     if (target) target.classList.add('v1942-native-week-control');
   }
-  function installWeekHeader() {
-    const weeks = [...document.querySelectorAll('.week-workspace')];
-    if (!weeks.length) return;
-    const week = weeks.find((node) => node.offsetParent !== null) || weeks[weeks.length - 1];
+  function hideNativeWeekChrome(week, panel) {
+    if (!week) return;
+    week.classList.add('v1946-compact-week');
+    [...week.children].forEach((child) => {
+      if (child === panel || child.matches('[data-v1942-week-header], .week-grid')) return;
+      const hasWeekHeading = [...child.querySelectorAll('h1,h2')].some((node) => /^week$/i.test(text(node)));
+      const isNativeToolbar = child.matches('.week-toolbar') || Boolean(child.querySelector('select') && child.querySelector('input[type="checkbox"]'));
+      const isNativeHeader = child.matches('.page-header, .workspace-header, .week-page-header') || hasWeekHeading;
+      if (isNativeHeader || isNativeToolbar) child.classList.add('v1942-native-week-control');
+    });
+  }
+  function installWeekHeaderFor(week) {
+    if (!week) return;
+    week.classList.add('v1946-compact-week');
     week.querySelectorAll('[data-v194-week-templates]').forEach((button) => button.remove());
 
-    let panel = week.querySelector('[data-v1942-week-header]');
+    const panels = [...week.querySelectorAll(':scope > [data-v1942-week-header]')];
+    let panel = panels[0] || null;
+    panels.slice(1).forEach((duplicate) => duplicate.remove());
     if (!panel) {
       panel = document.createElement('section');
       panel.dataset.v1942WeekHeader = 'true';
@@ -606,6 +659,7 @@
     proxyWeekend.removeAttribute('aria-invalid');
     applyWeekDisplayFallback(week, proxySelect.value, proxyWeekend.checked);
 
+    hideNativeWeekChrome(week, panel);
     const heading = [...week.querySelectorAll('h1,h2')].find((node) => !node.closest('[data-v1942-week-header]') && /^week$/i.test(text(node)));
     if (heading) hideNativeWeekControl(heading.closest('.page-header') || heading.parentElement);
     const navButtons = [
@@ -622,7 +676,16 @@
     panel.dataset.controlsReady = 'true';
     panel.dataset.controlsMode = controlsMode;
     document.documentElement.dataset.v1942WeekHeader = 'true';
-    document.documentElement.dataset.v1945WeekControls = controlsMode;
+    document.documentElement.dataset.v1946WeekControls = controlsMode;
+    document.documentElement.dataset.v1946WeekControlsVerified = 'true';
+    document.documentElement.dataset.v1946CompactWeek = 'true';
+    requestAnimationFrame(() => hideNativeWeekChrome(week, panel));
+  }
+  function installWeekHeader() {
+    const weeks = [...document.querySelectorAll('.week-workspace')];
+    if (!weeks.length) return;
+    const visible = weeks.filter((node) => node.offsetParent !== null);
+    (visible.length ? visible : weeks).forEach(installWeekHeaderFor);
   }
   function installTemplateControls() {
     document.querySelectorAll('.planning-editor .v19-flow-editor').forEach((shell) => {
@@ -790,11 +853,11 @@
   }
 
   function scheduleMaintenance(){if(maintenanceQueued)return;maintenanceQueued=true;requestAnimationFrame(()=>{maintenanceQueued=false;maintain()})}
-  function maintain(){decorateStableBlockLinks();installTemplateControls();installFlowDragAndCollapse();installLearnerSupportTab();renderTodayNotices()}
-  function start(){migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.5';console.info('Classroom v19.4.5 Week Control Recovery loaded.')},60)}
+  function maintain(){normalizeWeekCardTimes();decorateStableBlockLinks();installTemplateControls();installFlowDragAndCollapse();installLearnerSupportTab();renderTodayNotices()}
+  function start(){document.documentElement.dataset.v1946CompactWeek='true';migrateChineseNewYear();installPlanTargetBridge();const observer=new MutationObserver(scheduleMaintenance);observer.observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('classroom:v19-data-change',scheduleMaintenance);window.addEventListener('classroom:v19-restored',scheduleMaintenance);const timer=setInterval(()=>{if(!document.querySelector('.app-shell'))return;clearInterval(timer);maintain();document.documentElement.dataset.classroomWorkflowVersion='19.4.6';console.info('Classroom v19.4.6 Week Render & Friday Schedule Repair loaded.')},60)}
 
   window.ClassroomV19WorkflowDiagnostics={
-    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox,applyWeekDisplayFallback,parseMinuteRange
+    decorateStableBlockLinks,stableBlockForCard,blockMatchesCard,blockDaySet,blockAppliesToWeekday,cloneFlowBlocks,noticeActiveOn,migrateChineseNewYear,templates,notices,openTemplateManager,installWeekHeader,setReactControlValue,setReactCheckbox,applyWeekDisplayFallback,parseMinuteRange,canonicalMinuteRange,normalizeWeekCardTimes,blockMatchesCardTimeAndDay
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();
 })();

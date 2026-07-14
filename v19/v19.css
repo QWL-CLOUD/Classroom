@@ -2245,3 +2245,27 @@ button.v19-metric {
 .week-workspace .workspace-item.v1945-view-hidden {
   display: none !important;
 }
+
+
+/* Classroom v19.4.6 — persistent Week render guard and Friday time normalization */
+html[data-v1946-compact-week="true"] .week-workspace > .page-header,
+html[data-v1946-compact-week="true"] .week-workspace > .workspace-header,
+html[data-v1946-compact-week="true"] .week-workspace > .week-page-header,
+html[data-v1946-compact-week="true"] .week-workspace > .week-toolbar,
+html[data-v1946-compact-week="true"] .week-workspace.v1946-compact-week > :not([data-v1942-week-header]):has(> h1),
+html[data-v1946-compact-week="true"] .week-workspace.v1946-compact-week > :not([data-v1942-week-header]):has(> h2) {
+  display: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+}
+
+html[data-v1946-compact-week="true"] .week-workspace > [data-v1942-week-header] ~ [data-v1942-week-header] {
+  display: none !important;
+}
+
+.week-workspace [data-v1946-canonical-time="true"] {
+  font-variant-numeric: tabular-nums;
+}
