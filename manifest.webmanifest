@@ -1,12 +1,12 @@
 {
-  "name": "Classroom v19.4.7 · Friday Block Identity & Ordering",
-  "short_name": "Classroom v19.4.7",
-  "description": "Prevents duplicate Week headers during React rerenders, preserves working Week controls, formats legacy Friday minute ranges as clock times, and restores stable Friday Schedule Block matching.",
+  "name": "Classroom v19.4.8 · Week Navigation & Calendar Rendering",
+  "short_name": "Classroom v19.4.8",
+  "description": "Uses direct Week date navigation, renders calendar events in fallback mode, preserves Friday block identity, and keeps the compact Week header stable.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "background_color": "#F5F3EE",
   "theme_color": "#334B4F",
-  "version": "19.4.7",
+  "version": "19.4.8",
   "icons": []
 }
